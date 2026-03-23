@@ -44,6 +44,8 @@ jobs:
           flake8 .
 
       - name: Unit tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
         run: |
           echo "รันทดสอบ Unit tests ด้วย pytest"
           pytest -q
