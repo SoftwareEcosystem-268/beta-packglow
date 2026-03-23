@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  # ตรวจงานฝั่ง Backend (FastAPI)
+  backend:
+    name: Backend Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          echo "เริ่มติดตั้ง dependencies ฝั่ง Backend"
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint
+        run: |
+          echo "ตรวจ Lint ด้วย flake8"
+          flake8 .
+
+      - name: Unit tests
+        run: |
+          echo "รันทดสอบ Unit tests ด้วย pytest"
+          pytest -q
+
+      - name: Build verification
+        run: |
+          echo "ตรวจ Build verification โดย compile โค้ด Python"
+          python -m compileall app
