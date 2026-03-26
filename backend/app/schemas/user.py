@@ -20,7 +20,7 @@ Schemas ใช้สำหรับ:
 - Response: สำหรับส่งกลับ (output)
 """
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
 from uuid import UUID
 
@@ -75,7 +75,6 @@ class UserResponse(UserBase):
     id: UUID
     created_at: datetime
 
-    class Config:
-        # อนุญาตให้แปลงจาก SQLAlchemy model เป็น Pydantic
-        # เช่น user_obj = User(email="...") -> UserResponse.model_validate(user_obj)
-        from_attributes = True
+    # อนุญาตให้แปลงจาก SQLAlchemy model เป็น Pydantic
+    # เช่น user_obj = User(email="...") -> UserResponse.model_validate(user_obj)
+    model_config = ConfigDict(from_attributes=True)
