@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Compass } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -16,7 +15,6 @@ export default function Navbar({ variant = "dark" }: NavbarProps) {
   const textColor = isDark ? "text-white" : "text-gray-900";
   const hoverColor = isDark ? "hover:text-brand" : "hover:text-brand-dark";
   const logoColor = isDark ? "text-white" : "text-gray-900";
-  const compassColor = isDark ? "text-white" : "text-brand";
 
   const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
     const isActive = pathname === href;
@@ -35,7 +33,7 @@ export default function Navbar({ variant = "dark" }: NavbarProps) {
     <header className={`flex items-center justify-between px-8 md:px-16 lg:px-24 py-6 ${isDark ? "" : "bg-white shadow-sm"}`}>
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2">
-        <Compass className={`w-8 h-8 ${compassColor}`} />
+        <img src="/asset/logo-web.svg" alt="PackGlow" className="w-8 h-8" />
         <span className={`text-2xl font-bold ${logoColor}`}>PackGlow</span>
       </Link>
 
