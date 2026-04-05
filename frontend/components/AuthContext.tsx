@@ -22,7 +22,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem("pg_current_user");
     if (stored) {
-      try { setUser(JSON.parse(stored)); } catch {}
+      try {
+        const parsedUser = JSON.parse(stored) as User;
+        setUser(parsedUser);
+      } catch {
+        // Invalid stored data, ignore
+      }
     }
   }, []);
 
