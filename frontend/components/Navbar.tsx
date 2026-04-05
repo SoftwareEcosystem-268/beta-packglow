@@ -8,6 +8,28 @@ interface NavbarProps {
   variant?: "dark" | "light";
 }
 
+interface NavLinkProps {
+  href: string;
+  children: React.ReactNode;
+  pathname: string;
+  textColor: string;
+  hoverColor: string;
+}
+
+// Move NavLink outside of Navbar component
+const NavLink = ({ href, children, pathname, textColor, hoverColor }: NavLinkProps) => {
+  const isActive = pathname === href;
+  return (
+    <Link
+      href={href}
+      className={`${textColor} font-medium ${hoverColor} transition-colors relative pb-1`}
+    >
+      {children}
+      {isActive && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
+    </Link>
+  );
+};
+
 export default function Navbar({ variant = "dark" }: NavbarProps) {
   const pathname = usePathname();
 
@@ -15,19 +37,6 @@ export default function Navbar({ variant = "dark" }: NavbarProps) {
   const textColor = isDark ? "text-white" : "text-gray-900";
   const hoverColor = isDark ? "hover:text-brand" : "hover:text-brand-dark";
   const logoColor = isDark ? "text-white" : "text-gray-900";
-
-  const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
-    const isActive = pathname === href;
-    return (
-      <Link
-        href={href}
-        className={`${textColor} font-medium ${hoverColor} transition-colors relative pb-1`}
-      >
-        {children}
-        {isActive && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
-      </Link>
-    );
-  };
 
   return (
     <header className={`flex items-center justify-between px-8 md:px-16 lg:px-24 py-6 ${isDark ? "" : "bg-white shadow-sm"}`}>
@@ -39,11 +48,11 @@ export default function Navbar({ variant = "dark" }: NavbarProps) {
 
       {/* Navigation */}
       <nav className="hidden md:flex items-center gap-6">
-        <NavLink href="/">Home</NavLink>
-        <NavLink href="/destinations">Destinations</NavLink>
-        <NavLink href="/packing">Packing</NavLink>
-        <NavLink href="/outfits">Outfits</NavLink>
-        <NavLink href="/pricing">Pricing</NavLink>
+        <NavLink href="/" pathname={pathname} textColor={textColor} hoverColor={hoverColor}>Home</NavLink>
+        <NavLink href="/destinations" pathname={pathname} textColor={textColor} hoverColor={hoverColor}>Destinations</NavLink>
+        <NavLink href="/packing" pathname={pathname} textColor={textColor} hoverColor={hoverColor}>Packing</NavLink>
+        <NavLink href="/outfits" pathname={pathname} textColor={textColor} hoverColor={hoverColor}>Outfits</NavLink>
+        <NavLink href="/pricing" pathname={pathname} textColor={textColor} hoverColor={hoverColor}>Pricing</NavLink>
       </nav>
 
       {/* Auth Buttons */}
