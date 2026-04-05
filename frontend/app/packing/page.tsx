@@ -1,8 +1,10 @@
 "use client";
 
 import Navbar from "@/components/Navbar";
-import { ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
+import { usePacking } from "@/components/PackingContext";
+import { ChevronLeft, ChevronRight, Check, Plus, X } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const categories = [
   { id: "all", label: "ทั้งหมด" },
@@ -14,52 +16,7 @@ const categories = [
   { id: "others", label: "อื่น ๆ" },
 ];
 
-const packingItems: Record<string, { id: number; name: string; description: string; checked: boolean }[]> = {
-  clothes: [
-    { id: 1, name: "เสื้อยืด", description: "สำหรับอากาศ 15–22°C", checked: true },
-    { id: 2, name: "เสื้อกันฝน", description: "สำหรับฝนตก", checked: true },
-    { id: 3, name: "เสื้อกันหนาว", description: "สำหรับกลางคืนที่โตเกียว <10°C", checked: false },
-    { id: 4, name: "กางเกงยีนส์", description: "สำหรับเดินในเมือง", checked: false },
-    { id: 5, name: "กางเกงขาสั้น", description: "สำหรับอากาศร้อน", checked: false },
-    { id: 6, name: "ถุงเท้า", description: "5 คู่", checked: true },
-    { id: 7, name: "ชุดนอน", description: "2 ชุด", checked: false },
-    { id: 8, name: "เสื้อฮู้ด", description: "สำหรับอากาศเย็น", checked: true },
-  ],
-  personal: [
-    { id: 9, name: "แปรงสีฟัน", description: "พร้อมยาสีฟัน", checked: true },
-    { id: 10, name: "เจลอาบน้ำ", description: "100ml", checked: true },
-    { id: 11, name: "แชมพู", description: "100ml", checked: false },
-    { id: 12, name: "ผ้าเช็ดตัว", description: "ผ้าเช็ดตัวเดินทาง", checked: false },
-    { id: 13, name: "เครื่องสำอาง", description: "พื้นฐาน", checked: true },
-    { id: 14, name: "เจลทาผิว", description: "สำหรับผิวแห้ง", checked: false },
-  ],
-  health: [
-    { id: 15, name: "ยาแก้ปวด", description: "พาราเซตามอล", checked: true },
-    { id: 16, name: "ยาแก้ท้องเสีย", description: "สำหรับเดินทาง", checked: false },
-    { id: 17, name: "ปลาสเตอร์", description: "สำหรับแผล", checked: true },
-    { id: 18, name: "ยาหอม", description: "สำหรับเมารถ", checked: false },
-    { id: 19, name: "พลาสเตอร์บรรเทาปวด", description: "สำหรับปวดกล้ามเนื้อ", checked: false },
-  ],
-  electronics: [
-    { id: 20, name: "โทรศัพท์มือถือ", description: "พร้อมสายชาร์จ", checked: true },
-    { id: 21, name: "แท็บเล็ต", description: "สำหรับดูหนัง", checked: false },
-    { id: 22, name: "หูฟัง", description: "หูฟังบลูทูธ", checked: true },
-    { id: 23, name: "Power bank", description: "20000mAh", checked: true },
-  ],
-  documents: [
-    { id: 24, name: "หนังสือเดินทาง", description: "พร้อมใบตรวจลงตรา", checked: true },
-    { id: 25, name: "บัตรประจำตัวประชาชน", description: "หรือสำเนา", checked: true },
-    { id: 26, name: "ตั๋วเครื่องบิน", description: "E-ticket", checked: true },
-    { id: 27, name: "ประกันการเดินทาง", description: "สำเนา", checked: true },
-  ],
-  others: [
-    { id: 28, name: "ร่ม", description: "ร่มพกพา", checked: true },
-    { id: 29, name: "ถุงพลาสติก", description: "สำหรับแยกเสื้อผ้าเปียก", checked: false },
-    { id: 30, name: "แว่นกันแดด", description: "สำหรับกลางวัน", checked: false },
-  ],
-};
-
-function getCategoryStats(categoryId: string, items: typeof packingItems): { completed: number; total: number } {
+function getCategoryStats(categoryId: string, items: Record<string, { id: number; name: string; description: string; checked: boolean }[]>): { completed: number; total: number } {
   if (categoryId === "all") {
     let total = 0;
     let completed = 0;
@@ -77,8 +34,29 @@ function getCategoryStats(categoryId: string, items: typeof packingItems): { com
 }
 
 export default function PackingPage() {
+  const router = useRouter();
+  const { items, setItems } = usePacking();
   const [activeCategory, setActiveCategory] = useState("all");
-  const [items, setItems] = useState(packingItems);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemDesc, setNewItemDesc] = useState("");
+
+  const addItem = () => {
+    if (!newItemName.trim() || activeCategory === "all") return;
+    const newId = Date.now();
+    setItems(prev => ({
+      ...prev,
+      [activeCategory]: [...(prev[activeCategory] || []), {
+        id: newId,
+        name: newItemName.trim(),
+        description: newItemDesc.trim(),
+        checked: false,
+      }]
+    }));
+    setNewItemName("");
+    setNewItemDesc("");
+    setShowAddForm(false);
+  };
 
   const toggleItem = (categoryId: string, itemId: number) => {
     setItems(prev => ({
@@ -89,20 +67,27 @@ export default function PackingPage() {
     }));
   };
 
+  const deleteItem = (categoryId: string, itemId: number) => {
+    setItems(prev => ({
+      ...prev,
+      [categoryId]: prev[categoryId].filter(item => item.id !== itemId)
+    }));
+  };
+
   const renderItems = (categoryId: string) => {
     const categoryItems = items[categoryId] || [];
     return categoryItems.map((item) => (
       <div
         key={item.id}
-        onClick={() => toggleItem(categoryId, item.id)}
-        className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all ${
+        className={`flex items-start gap-4 p-4 rounded-xl transition-all group ${
           item.checked
             ? "bg-white shadow-sm"
             : "bg-gray-100 hover:bg-gray-200"
         }`}
       >
         <div
-          className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 ${
+          onClick={() => toggleItem(categoryId, item.id)}
+          className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 cursor-pointer ${
             item.checked
               ? "bg-brand"
               : "border-2 border-gray-300"
@@ -110,12 +95,18 @@ export default function PackingPage() {
         >
           {item.checked && <Check className="w-4 h-4 text-white" />}
         </div>
-        <div className="flex-1">
+        <div className="flex-1 cursor-pointer" onClick={() => toggleItem(categoryId, item.id)}>
           <h3 className={`font-medium ${item.checked ? "text-gray-900" : "text-gray-700"}`}>
             {item.name}
           </h3>
           <p className="text-sm text-gray-500">{item.description}</p>
         </div>
+        <button
+          onClick={() => deleteItem(categoryId, item.id)}
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 transition-all flex-shrink-0 mt-0.5"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
     ));
   };
@@ -187,14 +178,64 @@ export default function PackingPage() {
             // Show single category items
             <div className="grid gap-3 max-w-2xl">
               {renderItems(activeCategory)}
-              <button className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-brand hover:text-brand transition-all">
-                <div className="w-6 h-6 rounded-md border-2 border-current flex items-center justify-center">
-                  <Plus className="w-4 h-4" />
+              {showAddForm ? (
+                <div className="p-4 rounded-xl border-2 border-brand bg-white space-y-3">
+                  <input
+                    type="text"
+                    placeholder="ชื่อรายการ"
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addItem()}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-brand text-gray-900"
+                    autoFocus
+                  />
+                  <input
+                    type="text"
+                    placeholder="รายละเอียด (ไม่จำเป็น)"
+                    value={newItemDesc}
+                    onChange={(e) => setNewItemDesc(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addItem()}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-brand text-gray-900"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={addItem}
+                      disabled={!newItemName.trim()}
+                      className="px-4 py-2 rounded-lg bg-brand text-white font-medium hover:bg-brand-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      เพิ่ม
+                    </button>
+                    <button
+                      onClick={() => { setShowAddForm(false); setNewItemName(""); setNewItemDesc(""); }}
+                      className="px-4 py-2 rounded-lg bg-gray-200 text-gray-600 font-medium hover:bg-gray-300 transition-colors"
+                    >
+                      ยกเลิก
+                    </button>
+                  </div>
                 </div>
-                <span className="font-medium">เพิ่มรายการ</span>
-              </button>
+              ) : (
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-brand hover:text-brand transition-all"
+                >
+                  <div className="w-6 h-6 rounded-md border-2 border-current flex items-center justify-center">
+                    <Plus className="w-4 h-4" />
+                  </div>
+                  <span className="font-medium">เพิ่มรายการ</span>
+                </button>
+              )}
             </div>
           )}
+
+          {/* Confirm Button */}
+          <div className="max-w-2xl mt-8">
+            <button
+              onClick={() => router.back()}
+              className="w-full py-4 rounded-2xl bg-brand hover:bg-brand-dark transition-colors text-white font-bold text-lg"
+            >
+              ยืนยันรายการ Packing
+            </button>
+          </div>
         </main>
       </div>
     </div>

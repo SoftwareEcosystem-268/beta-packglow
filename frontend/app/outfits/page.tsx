@@ -3,6 +3,7 @@
 import Navbar from "@/components/Navbar";
 import { ChevronLeft, ChevronRight, Star, Sparkles } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 const filters = [
   { id: "all", label: "ทั้งหมด" },
@@ -65,10 +66,10 @@ export default function OutfitsPage() {
               <p className="text-white/70 text-sm md:text-base">AI จับคู่ชุดกับสถานที่และสภาพอากาศ — สำหรับสมาชิก Pro</p>
             </div>
           </div>
-          <button className="flex items-center gap-2 bg-[#F4A940] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#E09830] transition-colors shadow-md whitespace-nowrap">
+          <Link href="/pricing" className="flex items-center gap-2 bg-[#F4A940] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#E09830] transition-colors shadow-md whitespace-nowrap">
             <Star className="w-4 h-4 fill-white" />
             อัปเกรด Pro
-          </button>
+          </Link>
         </div>
 
         {/* Header with Filters */}
