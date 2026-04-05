@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (stored) {
       try { setUser(JSON.parse(stored)); } catch {}
     }
-  }, []);
+  }, [setUser]);
 
   const getUsers = (): Record<string, { name: string; password: string }> => {
     try { return JSON.parse(localStorage.getItem("pg_users") || "{}"); } catch { return {}; }
