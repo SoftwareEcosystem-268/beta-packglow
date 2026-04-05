@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 
 export type User = {
   name: string;
@@ -31,11 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const getUsers = (): Record<string, { name: string; password: string }> => {
+  const getUsers = useCallback((): Record<string, { name: string; password: string }> => {
     try { return JSON.parse(localStorage.getItem("pg_users") || "{}"); } catch { return {}; }
-  };
+  }, []);
 
-  const signup = (name: string, email: string, password: string): string | null => {
+  const signup = useCallback((name: string, email: string, password: string): string | null => {
     const users = getUsers();
     if (users[email]) return "อีเมลนี้ถูกใช้งานแล้ว";
     if (password.length < 8) return "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร";
@@ -45,9 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("pg_current_user", JSON.stringify(newUser));
     setUser(newUser);
     return null;
-  };
+  }, [getUsers]);
 
-  const login = (email: string, password: string): string | null => {
+  const login = useCallback((email: string, password: string): string | null => {
     const users = getUsers();
     if (!users[email]) return "ไม่พบบัญชีนี้";
     if (users[email].password !== password) return "รหัสผ่านไม่ถูกต้อง";
@@ -55,12 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("pg_current_user", JSON.stringify(loggedUser));
     setUser(loggedUser);
     return null;
-  };
+  }, [getUsers]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("pg_current_user");
     setUser(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, signup, login, logout }}>
