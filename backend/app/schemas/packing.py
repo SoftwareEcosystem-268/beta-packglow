@@ -8,7 +8,7 @@ Schemas สำหรับจัดการ:
 
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from uuid import UUID
 from typing import Optional, List
@@ -69,8 +69,7 @@ class PackingItemResponse(PackingItemBase):
     """
     id: UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # =============================================================================
@@ -144,5 +143,4 @@ class TripChecklistResponse(TripChecklistBase):
     id: UUID
     trip_id: UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

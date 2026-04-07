@@ -12,7 +12,7 @@ Destination Types (ประเภทปลายทาง):
 - ceremony: พิธีการ
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import date, datetime
 from uuid import UUID
 from typing import Optional, List
@@ -104,5 +104,4 @@ class TripResponse(TripBase):
     user_id: UUID
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
