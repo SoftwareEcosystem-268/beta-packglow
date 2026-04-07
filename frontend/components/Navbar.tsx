@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Compass } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -12,12 +11,14 @@ interface NavbarProps {
 interface NavLinkProps {
   href: string;
   children: React.ReactNode;
+  pathname: string;
   textColor: string;
   hoverColor: string;
-  isActive: boolean;
 }
 
-const NavLink = ({ href, children, textColor, hoverColor, isActive }: NavLinkProps) => {
+// Move NavLink outside of Navbar component
+const NavLink = ({ href, children, pathname, textColor, hoverColor }: NavLinkProps) => {
+  const isActive = pathname === href;
   return (
     <Link
       href={href}
@@ -36,23 +37,22 @@ export default function Navbar({ variant = "dark" }: NavbarProps) {
   const textColor = isDark ? "text-white" : "text-gray-900";
   const hoverColor = isDark ? "hover:text-brand" : "hover:text-brand-dark";
   const logoColor = isDark ? "text-white" : "text-gray-900";
-  const compassColor = isDark ? "text-white" : "text-brand";
 
   return (
     <header className={`flex items-center justify-between px-8 md:px-16 lg:px-24 py-6 ${isDark ? "" : "bg-white shadow-sm"}`}>
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2">
-        <Compass className={`w-8 h-8 ${compassColor}`} />
+        <img src="/asset/logo-web.svg" alt="PackGlow" className="w-8 h-8" />
         <span className={`text-2xl font-bold ${logoColor}`}>PackGlow</span>
       </Link>
 
       {/* Navigation */}
       <nav className="hidden md:flex items-center gap-6">
-        <NavLink href="/" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/"}>Home</NavLink>
-        <NavLink href="/destinations" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/destinations"}>Destinations</NavLink>
-        <NavLink href="/packing" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/packing"}>Packing</NavLink>
-        <NavLink href="/outfits" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/outfits"}>Outfits</NavLink>
-        <NavLink href="/pricing" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/pricing"}>Pricing</NavLink>
+        <NavLink href="/" pathname={pathname} textColor={textColor} hoverColor={hoverColor}>Home</NavLink>
+        <NavLink href="/destinations" pathname={pathname} textColor={textColor} hoverColor={hoverColor}>Destinations</NavLink>
+        <NavLink href="/packing" pathname={pathname} textColor={textColor} hoverColor={hoverColor}>Packing</NavLink>
+        <NavLink href="/outfits" pathname={pathname} textColor={textColor} hoverColor={hoverColor}>Outfits</NavLink>
+        <NavLink href="/pricing" pathname={pathname} textColor={textColor} hoverColor={hoverColor}>Pricing</NavLink>
       </nav>
 
       {/* Auth Buttons */}
