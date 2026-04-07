@@ -34,23 +34,6 @@ A modern full-stack web application that helps travelers plan trips with confide
 | Primary | นักศึกษาที่ชอบเที่ยวและต้องเดินทางบ่อย |
 | Secondary | คนรุ่นใหม่ที่กำลังจะไปงานพิธีหรืออีเวนต์ |
 
-### User Persona: พี่แบงค์ (Bank)
-
-```text
-อายุ: 22 ปี
-การศึกษา: นักศึกษาปี 4 คณะวิศวกรรมศาสตร์
-งานอดิเรก: เที่ยวกับเพื่อน, ถ่ายรูป
-
-ความต้องการ:
-- อยากรู้ว่าต้องเอาอะไรไปบ้างเวลาเที่ยว
-- อยากแต่งตัวให้เหมาะกับที่ที่จะไป
-- ไม่อยากลืมของสำคัญ
-
-Pain Points:
-- แพ็กกระเป๋าแล้วลืมของสำคัญบ่อย
-- ไม่รู้สภาพอากาศที่ปลายทาง
-- แต่งตัวไม่เหมาะกับกาลเทศะ
-```
 
 ## Problem Statement
 
@@ -256,50 +239,6 @@ user_id (FK)
 outfit_id (FK)
 saved_at
 ```
-
-## MVP Roadmap (Sprint 1-3)
-
-### Feature 1: Destination Picker
-
-- User story: เลือกประเภทปลายทางเพื่อให้ระบบแนะนำของที่เหมาะสม
-- Acceptance criteria:
-   - เลือกปลายทางได้ (ทะเล/ภูเขา/เมือง/ต่างประเทศ/งานพิธี)
-   - เลือกจำนวนวันที่เดินทาง
-   - เลือกกิจกรรมหลัก
-- Complexity: Low
-- Sprint: 1
-
-### Feature 2: Weather Integration
-
-- User story: เห็นข้อมูลอากาศล่วงหน้าเพื่อวางแผนการแต่งตัวและการแพ็กของ
-- Acceptance criteria:
-   - แสดงพยากรณ์อากาศ (mock)
-   - แสดงอุณหภูมิและโอกาสฝนตก
-   - ให้คำแนะนำเรื่องเสื้อผ้าตามสภาพอากาศ
-- Complexity: Medium
-- Sprint: 2
-
-### Feature 3: Packing Checklist
-
-- User story: มี checklist เฉพาะทริปเพื่อไม่ลืมของสำคัญ
-- Acceptance criteria:
-   - สร้าง checklist ตามปลายทาง/กิจกรรม
-   - ติ๊กของที่แพ็กแล้ว
-   - เพิ่ม/ลบรายการได้
-   - บันทึกรายการไว้ใช้ซ้ำได้
-- Complexity: Medium
-- Sprint: 1-2
-
-### Feature 4: Outfit Moodboard
-
-- User story: ได้ไอเดียการแต่งตัวตามสถานการณ์ของทริป
-- Acceptance criteria:
-   - แสดง outfit ตามปลายทาง
-   - แบ่งตาม occasion (กลางวัน/กลางคืน/งานพิธี)
-   - มีภาพและคำอธิบาย
-   - บันทึก outfit ที่ชอบได้
-- Complexity: Medium
-- Sprint: 3
 
 ## Available Commands
 
