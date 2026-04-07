@@ -14,12 +14,10 @@ interface NavLinkProps {
   children: React.ReactNode;
   textColor: string;
   hoverColor: string;
-  pathname: string;
+  isActive: boolean;
 }
 
-// Move NavLink outside of the Navbar component
-function NavLink({ href, children, textColor, hoverColor, pathname }: NavLinkProps) {
-  const isActive = pathname === href;
+const NavLink = ({ href, children, textColor, hoverColor, isActive }: NavLinkProps) => {
   return (
     <Link
       href={href}
@@ -29,7 +27,7 @@ function NavLink({ href, children, textColor, hoverColor, pathname }: NavLinkPro
       {isActive && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
     </Link>
   );
-}
+};
 
 export default function Navbar({ variant = "dark" }: NavbarProps) {
   const pathname = usePathname();
@@ -50,11 +48,11 @@ export default function Navbar({ variant = "dark" }: NavbarProps) {
 
       {/* Navigation */}
       <nav className="hidden md:flex items-center gap-6">
-        <NavLink href="/" textColor={textColor} hoverColor={hoverColor} pathname={pathname}>Home</NavLink>
-        <NavLink href="/destinations" textColor={textColor} hoverColor={hoverColor} pathname={pathname}>Destinations</NavLink>
-        <NavLink href="/packing" textColor={textColor} hoverColor={hoverColor} pathname={pathname}>Packing</NavLink>
-        <NavLink href="/outfits" textColor={textColor} hoverColor={hoverColor} pathname={pathname}>Outfits</NavLink>
-        <NavLink href="/pricing" textColor={textColor} hoverColor={hoverColor} pathname={pathname}>Pricing</NavLink>
+        <NavLink href="/" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/"}>Home</NavLink>
+        <NavLink href="/destinations" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/destinations"}>Destinations</NavLink>
+        <NavLink href="/packing" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/packing"}>Packing</NavLink>
+        <NavLink href="/outfits" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/outfits"}>Outfits</NavLink>
+        <NavLink href="/pricing" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/pricing"}>Pricing</NavLink>
       </nav>
 
       {/* Auth Buttons */}
