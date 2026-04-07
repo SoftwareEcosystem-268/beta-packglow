@@ -13,15 +13,15 @@ interface NavbarProps {
 const NavLink = ({
   href,
   children,
-  isActive,
   textColor,
   hoverColor,
+  isActive,
 }: {
   href: string;
   children: React.ReactNode;
-  isActive: boolean;
   textColor: string;
   hoverColor: string;
+  isActive: boolean;
 }) => (
   <Link
     href={href}
@@ -51,11 +51,11 @@ export default function Navbar({ variant = "dark" }: NavbarProps) {
 
       {/* Navigation */}
       <nav className="hidden md:flex items-center gap-6">
-        <NavLink href="/" isActive={pathname === "/"} textColor={textColor} hoverColor={hoverColor}>Home</NavLink>
-        <NavLink href="/destinations" isActive={pathname === "/destinations"} textColor={textColor} hoverColor={hoverColor}>Destinations</NavLink>
-        <NavLink href="/packing" isActive={pathname === "/packing"} textColor={textColor} hoverColor={hoverColor}>Packing</NavLink>
-        <NavLink href="/outfits" isActive={pathname === "/outfits"} textColor={textColor} hoverColor={hoverColor}>Outfits</NavLink>
-        <NavLink href="/pricing" isActive={pathname === "/pricing"} textColor={textColor} hoverColor={hoverColor}>Pricing</NavLink>
+        <NavLink href="/" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/"}>Home</NavLink>
+        <NavLink href="/destinations" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/destinations"}>Destinations</NavLink>
+        <NavLink href="/packing" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/packing"}>Packing</NavLink>
+        <NavLink href="/outfits" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/outfits"}>Outfits</NavLink>
+        <NavLink href="/pricing" textColor={textColor} hoverColor={hoverColor} isActive={pathname === "/pricing"}>Pricing</NavLink>
       </nav>
 
       {/* Auth Buttons */}
