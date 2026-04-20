@@ -104,7 +104,7 @@ export default function Home() {
     templates, refreshTemplates, saveAsTemplate, loadTemplate, removeTemplate,
     generatedResult, generating, generateSmartList } = usePacking();
   const { outfits: apiOutfits, savedOutfits, loading: outfitsLoading, toggleSave: toggleOutfitSave, isSaved: isOutfitSaved } = useOutfits();
-  const { user, logout } = useAuth();
+  const { user, logout, mounted } = useAuth();
   const [userTier, setUserTier] = useState<"free" | "pro">(() => {
     if (typeof window === 'undefined') return "free";
     return (localStorage.getItem("pg_user_tier") as "free" | "pro") || "free";
@@ -371,7 +371,7 @@ export default function Home() {
           ))}
         </nav>
         <div className="flex items-center gap-4">
-          {user ? (
+          {!mounted ? null : user ? (
             <div className="relative" ref={menuRef}>
               <button onClick={() => setMenuOpen(!menuOpen)} className="relative w-9 h-9 rounded-full bg-brand flex items-center justify-center hover:bg-brand-dark transition-colors">
                 <User className="w-5 h-5 text-white" />

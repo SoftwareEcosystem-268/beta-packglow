@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -12,6 +12,7 @@ export type User = {
 
 type AuthContextType = {
   user: User | null;
+  mounted: boolean;
   signup: (name: string, email: string, password: string) => Promise<string | null>;
   login: (email: string, password: string) => Promise<string | null>;
   logout: () => void;
@@ -20,15 +21,16 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window === 'undefined') return null;
+  const [user, setUser] = useState<User | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
     try {
       const stored = localStorage.getItem("pg_current_user");
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+      if (stored) setUser(JSON.parse(stored));
+    } catch {}
+    setMounted(true);
+  }, []);
 
   const signup = useCallback(async (name: string, email: string, password: string): Promise<string | null> => {
     try {
@@ -81,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, signup, login, logout }}>
+    <AuthContext.Provider value={{ user, mounted, signup, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
