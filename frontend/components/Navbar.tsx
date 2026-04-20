@@ -11,6 +11,28 @@ interface NavbarProps {
   variant?: "dark" | "light";
 }
 
+interface NavLinkProps {
+  href: string;
+  children: React.ReactNode;
+  pathname: string;
+  textColor: string;
+  hoverColor: string;
+}
+
+// Move NavLink outside of Navbar component
+const NavLink = ({ href, children, pathname, textColor, hoverColor }: NavLinkProps) => {
+  const isActive = pathname === href;
+  return (
+    <Link
+      href={href}
+      className={`${textColor} font-medium ${hoverColor} transition-colors relative pb-1`}
+    >
+      {children}
+      {isActive && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
+    </Link>
+  );
+};
+
 export default function Navbar({ variant = "dark" }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();

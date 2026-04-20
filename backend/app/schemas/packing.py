@@ -2,7 +2,7 @@
 Packing Schemas - Pydantic schemas สำหรับการแพ็ค
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from uuid import UUID
 from typing import Optional, List, Literal
@@ -25,8 +25,7 @@ class PackingItemResponse(PackingItemBase):
     id: UUID
     user_id: Optional[UUID] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TripChecklistBase(BaseModel):
@@ -70,3 +69,5 @@ class BulkChecklistItem(BaseModel):
 
 class BulkChecklistRequest(BaseModel):
     items: List[BulkChecklistItem]
+
+    model_config = ConfigDict(from_attributes=True)

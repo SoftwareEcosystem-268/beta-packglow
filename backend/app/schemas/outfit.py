@@ -2,7 +2,7 @@
 Outfit Schemas - Pydantic schemas สำหรับ Outfit
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from uuid import UUID
 from typing import Optional, List, Literal
@@ -33,8 +33,7 @@ class OutfitSuggestionResponse(OutfitSuggestionBase):
     season: Optional[str] = "all_season"
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SavedOutfitCreate(BaseModel):
@@ -48,5 +47,4 @@ class SavedOutfitResponse(BaseModel):
     saved_at: datetime
     outfit: Optional[OutfitSuggestionResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
