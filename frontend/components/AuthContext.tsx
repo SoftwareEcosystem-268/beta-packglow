@@ -19,7 +19,10 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// External store for user state backed by localStorage
+// Cached snapshot to avoid infinite re-renders with useSyncExternalStore
+let cachedUser: User | null = null;
+let cachedRaw: string | null = null;
+
 let userListeners: (() => void)[] = [];
 
 function subscribeUser(callback: () => void) {
@@ -31,18 +34,22 @@ function subscribeUser(callback: () => void) {
 
 function getUserSnapshot(): User | null {
   try {
-    const stored = localStorage.getItem("pg_current_user");
-    return stored ? JSON.parse(stored) : null;
+    const raw = localStorage.getItem("pg_current_user");
+    if (raw === cachedRaw) return cachedUser;
+    cachedRaw = raw;
+    cachedUser = raw ? JSON.parse(raw) : null;
+    return cachedUser;
   } catch {
+    cachedRaw = null;
+    cachedUser = null;
     return null;
   }
 }
 
-function getUserServerSnapshot(): User | null {
-  return null;
-}
+const getUserServerSnapshot = (): User | null => null;
 
 function emitUserChange() {
+  cachedRaw = null; // invalidate cache
   for (const l of userListeners) l();
 }
 
