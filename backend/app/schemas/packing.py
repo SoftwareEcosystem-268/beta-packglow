@@ -55,7 +55,6 @@ class TripChecklistResponse(TripChecklistBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 class BulkChecklistItem(BaseModel):
     id: Optional[UUID] = None
     item_id: Optional[UUID] = None
@@ -68,4 +67,3 @@ class BulkChecklistItem(BaseModel):
 
 class BulkChecklistRequest(BaseModel):
     items: List[BulkChecklistItem]
-
