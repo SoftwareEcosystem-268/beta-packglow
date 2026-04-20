@@ -21,15 +21,14 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [mounted, setMounted] = useState(false);
 
-  // Load user from localStorage after hydration
   useEffect(() => {
     try {
       const stored = localStorage.getItem("pg_current_user");
-      if (stored) setUser(JSON.parse(stored));
+      if (stored) {
+        setUser(JSON.parse(stored));
+      }
     } catch {}
-    setMounted(true);
   }, []);
 
   const signup = useCallback(async (name: string, email: string, password: string): Promise<string | null> => {

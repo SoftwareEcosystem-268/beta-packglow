@@ -20,7 +20,7 @@ Schemas ใช้สำหรับ:
 - Response: สำหรับส่งกลับ (output)
 """
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
 from uuid import UUID
 

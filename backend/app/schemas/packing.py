@@ -68,3 +68,4 @@ class BulkChecklistItem(BaseModel):
 
 class BulkChecklistRequest(BaseModel):
     items: List[BulkChecklistItem]
+

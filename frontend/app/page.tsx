@@ -108,7 +108,7 @@ export default function Home() {
   const [userTier, setUserTier] = useState<"free" | "pro">("free");
   useEffect(() => {
     const saved = (localStorage.getItem("pg_user_tier") as "free" | "pro") || "free";
-    if (saved !== "free") setUserTier(saved);
+    setUserTier(saved);
     const onStorage = () => {
       setUserTier((localStorage.getItem("pg_user_tier") as "free" | "pro") || "free");
     };
