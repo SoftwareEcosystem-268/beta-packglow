@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useSyncExternalStore, useCallback, ReactNode } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -12,7 +12,6 @@ export type User = {
 
 type AuthContextType = {
   user: User | null;
-  mounted: boolean;
   signup: (name: string, email: string, password: string) => Promise<string | null>;
   login: (email: string, password: string) => Promise<string | null>;
   logout: () => void;
@@ -20,17 +19,35 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [mounted, setMounted] = useState(false);
+// External store for user state backed by localStorage
+let userListeners: (() => void)[] = [];
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("pg_current_user");
-      if (stored) setUser(JSON.parse(stored));
-    } catch {}
-    setMounted(true);
-  }, []);
+function subscribeUser(callback: () => void) {
+  userListeners = [...userListeners, callback];
+  return () => {
+    userListeners = userListeners.filter((l) => l !== callback);
+  };
+}
+
+function getUserSnapshot(): User | null {
+  try {
+    const stored = localStorage.getItem("pg_current_user");
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function getUserServerSnapshot(): User | null {
+  return null;
+}
+
+function emitUserChange() {
+  for (const l of userListeners) l();
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const user = useSyncExternalStore(subscribeUser, getUserSnapshot, getUserServerSnapshot);
 
   const signup = useCallback(async (name: string, email: string, password: string): Promise<string | null> => {
     try {
@@ -49,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data: User = await res.json();
       localStorage.setItem("pg_current_user", JSON.stringify(data));
       localStorage.setItem("pg_user_tier", "free");
-      setUser(data);
+      emitUserChange();
       return null;
     } catch {
       return "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้";
@@ -70,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data: User = await res.json();
       localStorage.setItem("pg_current_user", JSON.stringify(data));
       localStorage.setItem("pg_user_tier", "free");
-      setUser(data);
+      emitUserChange();
       return null;
     } catch {
       return "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้";
@@ -79,11 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem("pg_current_user");
-    setUser(null);
+    emitUserChange();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, mounted, signup, login, logout }}>
+    <AuthContext.Provider value={{ user, signup, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

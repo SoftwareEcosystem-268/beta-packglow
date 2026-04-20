@@ -9,6 +9,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/components/AuthContext";
 import { Button } from "@/components/ui/button";
 import DestinationPackingModal, { type DestinationData } from "@/components/DestinationPackingModal";
@@ -104,7 +105,7 @@ export default function Home() {
     templates, refreshTemplates, saveAsTemplate, loadTemplate, removeTemplate,
     generatedResult, generating, generateSmartList } = usePacking();
   const { outfits: apiOutfits, savedOutfits, loading: outfitsLoading, toggleSave: toggleOutfitSave, isSaved: isOutfitSaved } = useOutfits();
-  const { user, logout, mounted } = useAuth();
+  const { user, logout } = useAuth();
   const [userTier, setUserTier] = useState<"free" | "pro">(() => {
     if (typeof window === 'undefined') return "free";
     return (localStorage.getItem("pg_user_tier") as "free" | "pro") || "free";
@@ -354,7 +355,7 @@ export default function Home() {
       {/* ─── NAVBAR ─── */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 md:px-16 lg:px-24 py-5 bg-white/80 backdrop-blur-md shadow-sm">
         <button onClick={() => scrollTo("hero")} className="flex items-center gap-2">
-          <img src="/asset/logo-web.svg" alt="PackGlow" className="w-8 h-8 brightness-0" />
+          <Image src="/asset/logo-web.svg" alt="PackGlow" width={32} height={32} className="w-8 h-8 brightness-0" />
           <span className="text-2xl font-bold text-gray-900">PackGlow</span>
         </button>
         <nav className="hidden md:flex items-center gap-6">
@@ -371,7 +372,7 @@ export default function Home() {
           ))}
         </nav>
         <div className="flex items-center gap-4">
-          {!mounted ? null : user ? (
+          {user ? (
             <div className="relative" ref={menuRef}>
               <button onClick={() => setMenuOpen(!menuOpen)} className="relative w-9 h-9 rounded-full bg-brand flex items-center justify-center hover:bg-brand-dark transition-colors">
                 <User className="w-5 h-5 text-white" />
@@ -852,9 +853,10 @@ export default function Home() {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {savedOutfits.map((saved) => (
                 <div key={saved.id} className="relative rounded-xl overflow-hidden shadow-md group aspect-[3/4]">
-                  <img
+                  <Image
                     src={saved.outfit?.image_url || "/asset/Shibuya Night Out.svg"}
                     alt={saved.outfit?.description || "Saved outfit"}
+                    fill
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -986,7 +988,7 @@ export default function Home() {
                   {/* Day Outfit */}
                   <div className="bg-white rounded-2xl overflow-hidden shadow-lg">
                     <div className="aspect-[4/5] relative">
-                      <img src={stylistImages.day} alt="ชุดกลางวัน" className="w-full h-full object-cover" />
+                      <Image src={stylistImages.day} alt="ชุดกลางวัน" fill className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                         <p className="text-xs opacity-80 mb-1">☀️ Day Look</p>
@@ -997,7 +999,7 @@ export default function Home() {
                   {/* Night Outfit */}
                   <div className="bg-white rounded-2xl overflow-hidden shadow-lg">
                     <div className="aspect-[4/5] relative">
-                      <img src={stylistImages.night} alt="ชุดกลางคืน" className="w-full h-full object-cover" />
+                      <Image src={stylistImages.night} alt="ชุดกลางคืน" fill className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                         <p className="text-xs opacity-80 mb-1">🌙 Night Look</p>
@@ -1008,7 +1010,7 @@ export default function Home() {
                   {/* Activity Outfit */}
                   <div className="bg-white rounded-2xl overflow-hidden shadow-lg">
                     <div className="aspect-[4/5] relative">
-                      <img src={stylistImages.activity} alt="ชุดกิจกรรม" className="w-full h-full object-cover" />
+                      <Image src={stylistImages.activity} alt="ชุดกิจกรรม" fill className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                         <p className="text-xs opacity-80 mb-1">🎯 Activity Look</p>
@@ -1036,7 +1038,7 @@ export default function Home() {
           ) : (
             filteredOutfits.map(o => (
               <div key={o.id} className="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group aspect-[4/5]">
-                <img src={o.image_url || "/asset/Shibuya Night Out.svg"} alt={o.description || "Outfit"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <Image src={o.image_url || "/asset/Shibuya Night Out.svg"} alt={o.description || "Outfit"} fill className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <button onClick={() => isPro ? toggleOutfitSave(o.id) : null} className={`absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors ${isPro ? "bg-white/20 hover:bg-white/40" : "bg-white/10 cursor-not-allowed"}`}>
                   <Heart className={`w-5 h-5 ${isPro && isOutfitSaved(o.id) ? "text-red-500 fill-red-500" : isPro ? "text-white" : "text-white/40"}`} />
@@ -1058,8 +1060,8 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {partners.map(p => (
             <div key={p.id} className="bg-brand rounded-2xl p-6 flex items-center gap-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 shadow-md">
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {p.logo ? <img src={p.logo} alt={p.name} className="w-full h-full object-contain" /> : <span className="text-2xl font-bold text-white">{p.name.charAt(0)}</span>}
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                {p.logo ? <Image src={p.logo} alt={p.name} fill className="w-full h-full object-contain" /> : <span className="text-2xl font-bold text-white">{p.name.charAt(0)}</span>}
               </div>
               <div className="flex-1">
                 <h4 className="font-semibold text-white text-lg">{p.name}</h4>
@@ -1155,7 +1157,7 @@ export default function Home() {
               {/* Logo & Copyright */}
               <div className="col-span-2 md:col-span-1">
                 <div className="flex items-center gap-2 mb-4">
-                  <img src="/asset/logo-web.svg" alt="PackGlow" className="w-7 h-7 brightness-0 invert" />
+                  <Image src="/asset/logo-web.svg" alt="PackGlow" width={28} height={28} className="w-7 h-7 brightness-0 invert" />
                   <span className="text-xl font-bold text-white">PackGlow</span>
                 </div>
                 <p className="text-white/50 text-sm leading-relaxed">

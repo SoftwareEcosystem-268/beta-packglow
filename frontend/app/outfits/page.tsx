@@ -5,6 +5,7 @@ import { useOutfits } from "@/components/OutfitContext";
 import { ChevronLeft, ChevronRight, Star, Sparkles, Heart, Loader2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 const occasionFilters = [
   { id: "all", label: "ทั้งหมด" },
@@ -76,10 +77,11 @@ export default function OutfitsPage() {
                   key={saved.id}
                   className="relative rounded-xl overflow-hidden shadow-md group aspect-[3/4]"
                 >
-                  <img
+                  <Image
                     src={saved.outfit?.image_url || "/asset/Shibuya Night Out.svg"}
                     alt={saved.outfit?.description || "Saved outfit"}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   <button
@@ -165,10 +167,11 @@ export default function OutfitsPage() {
                 key={outfit.id}
                 className="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group aspect-[4/5]"
               >
-                <img
+                <Image
                   src={outfit.image_url || "/asset/Shibuya Night Out.svg"}
                   alt={outfit.description || "Outfit"}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 {/* Save button */}
@@ -208,9 +211,9 @@ export default function OutfitsPage() {
                 key={partner.id}
                 className="bg-[#C97D4E] rounded-2xl p-6 flex items-center gap-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 shadow-md"
               >
-                <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                   {partner.logo ? (
-                    <img src={partner.logo} alt={partner.name} className="w-full h-full object-contain" />
+                    <Image src={partner.logo} alt={partner.name} fill className="object-contain" />
                   ) : (
                     <span className="text-2xl font-bold text-white">{partner.name.charAt(0)}</span>
                   )}

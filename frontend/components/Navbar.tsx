@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/AuthContext";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { User, Crown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -10,28 +11,6 @@ import { useState, useRef, useEffect } from "react";
 interface NavbarProps {
   variant?: "dark" | "light";
 }
-
-interface NavLinkProps {
-  href: string;
-  children: React.ReactNode;
-  pathname: string;
-  textColor: string;
-  hoverColor: string;
-}
-
-// Move NavLink outside of Navbar component
-const NavLink = ({ href, children, pathname, textColor, hoverColor }: NavLinkProps) => {
-  const isActive = pathname === href;
-  return (
-    <Link
-      href={href}
-      className={`${textColor} font-medium ${hoverColor} transition-colors relative pb-1`}
-    >
-      {children}
-      {isActive && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
-    </Link>
-  );
-};
 
 export default function Navbar({ variant = "dark" }: NavbarProps) {
   const pathname = usePathname();
@@ -79,9 +58,11 @@ export default function Navbar({ variant = "dark" }: NavbarProps) {
     <header className={`flex items-center justify-between px-8 md:px-16 lg:px-24 py-6 ${isDark ? "" : "bg-white shadow-sm"}`}>
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2">
-        <img
+        <Image
           src="/asset/logo-web.svg"
           alt="PackGlow"
+          width={32}
+          height={32}
           className={`w-8 h-8 ${!isDark ? "brightness-0" : ""}`}
         />
         <span className={`text-2xl font-bold ${logoColor}`}>PackGlow</span>
