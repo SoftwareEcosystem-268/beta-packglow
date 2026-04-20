@@ -29,45 +29,50 @@ class UserBase(BaseModel):
     """
     Base schema ของ User
 
-    ประกอบด้วย fields ที่ใช้ร่วมกันใน create และ response
-
     Attributes:
+        name: ชื่อผู้ใช้
         email: อีเมลของผู้ใช้ (validate รูปแบบอัตโนมัติ)
     """
+    name: str
     email: EmailStr
 
 
 class UserCreate(UserBase):
     """
-    Schema สำหรับสร้าง user ใหม่
-
-    ใช้เป็น request body ของ POST /users/
-
-    สืบทอดจาก UserBase (มี email อยู่แล้ว)
-    ถ้าต้องการเพิ่ม fields อื่นๆ เช่น password, ให้เพิ่มที่นี่
+    Schema สำหรับสร้าง user ใหม่ (Register)
 
     Example:
         {
-            "email": "user@example.com"
+            "name": "John",
+            "email": "user@example.com",
+            "password": "yourpassword"
         }
     """
-    pass
+    password: str
+
+
+class UserLogin(BaseModel):
+    """
+    Schema สำหรับ login
+
+    Example:
+        {
+            "email": "user@example.com",
+            "password": "yourpassword"
+        }
+    """
+    email: EmailStr
+    password: str
 
 
 class UserResponse(UserBase):
     """
     Schema สำหรับ response ของ user
 
-    ใช้เป็น response model ของ GET/POST /users/
-
-    Attributes:
-        id: UUID ของ user
-        email: อีเมล (สืบทอดจาก UserBase)
-        created_at: เวลาที่สร้างบัญชี
-
     Example:
         {
-            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "id": "uuid",
+            "name": "John",
             "email": "user@example.com",
             "created_at": "2024-01-15T10:30:00Z"
         }
@@ -76,6 +81,4 @@ class UserResponse(UserBase):
     created_at: datetime
 
     class Config:
-        # อนุญาตให้แปลงจาก SQLAlchemy model เป็น Pydantic
-        # เช่น user_obj = User(email="...") -> UserResponse.model_validate(user_obj)
         from_attributes = True

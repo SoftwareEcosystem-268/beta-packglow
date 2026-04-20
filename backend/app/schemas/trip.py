@@ -1,108 +1,51 @@
 """
 Trip Schemas - Pydantic schemas สำหรับ Trip
-============================================
-
-Schemas สำหรับจัดการข้อมูลทริปการเดินทาง
-
-Destination Types (ประเภทปลายทาง):
-- beach: ชายหาด
-- mountain: ภูเขา
-- city: เมือง
-- abroad: ต่างประเทศ
-- ceremony: พิธีการ
 """
 
 from pydantic import BaseModel
 from datetime import date, datetime
 from uuid import UUID
-from typing import Optional, List
+from typing import Optional, List, Literal
+
+DestinationType = Literal["beach", "mountain", "city", "abroad", "ceremony"]
+TripStatus = Literal["planned", "ongoing", "completed", "cancelled"]
 
 
 class TripBase(BaseModel):
-    """
-    Base schema ของ Trip
-
-    Attributes:
-        destination_type: ประเภทปลายทาง (beach/mountain/city/abroad/ceremony)
-        duration_days: จำนวนวันของทริป
-        activities: กิจกรรมที่จะทำ (optional)
-        start_date: วันที่เริ่มทริป (optional)
-    """
-    destination_type: str
+    destination_type: DestinationType
     duration_days: int
     activities: Optional[List[str]] = []
     start_date: Optional[date] = None
 
 
 class TripCreate(TripBase):
-    """
-    Schema สำหรับสร้างทริปใหม่
-
-    ใช้เป็น request body ของ POST /trips/
-
-    Attributes:
-        user_id: UUID ของเจ้าของทริป (required)
-
-    Example:
-        {
-            "user_id": "550e8400-e29b-41d4-a716-446655440000",
-            "destination_type": "beach",
-            "duration_days": 5,
-            "activities": ["swimming", "sunbathing"],
-            "start_date": "2024-04-01"
-        }
-    """
     user_id: UUID
+    title: str = "Untitled Trip"
+    destination: Optional[str] = None
+    end_date: Optional[date] = None
+    status: TripStatus = "planned"
 
 
 class TripUpdate(BaseModel):
-    """
-    Schema สำหรับอัพเดททริป
-
-    ใช้เป็น request body ของ PATCH /trips/{id}
-    ทุก fields เป็น optional (สามารถอัพเดทเฉพาะบาง fields)
-
-    Example:
-        {
-            "duration_days": 7,
-            "start_date": "2024-04-15"
-        }
-    """
-    destination_type: Optional[str] = None
+    title: Optional[str] = None
+    destination_type: Optional[DestinationType] = None
+    destination: Optional[str] = None
     duration_days: Optional[int] = None
     activities: Optional[List[str]] = None
     start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    status: Optional[TripStatus] = None
 
 
 class TripResponse(TripBase):
-    """
-    Schema สำหรับ response ของทริป
-
-    ใช้เป็น response model ของ GET /trips/
-
-    Attributes:
-        id: UUID ของทริป
-        user_id: UUID ของเจ้าของทริป
-        destination_type: ประเภทปลายทาง (สืบทอด)
-        duration_days: จำนวนวัน (สืบทอด)
-        activities: กิจกรรม (สืบทอด)
-        start_date: วันที่เริ่ม (สืบทอด)
-        created_at: เวลาที่สร้างทริป
-
-    Example:
-        {
-            "id": "550e8400-e29b-41d4-a716-446655440001",
-            "user_id": "550e8400-e29b-41d4-a716-446655440000",
-            "destination_type": "beach",
-            "duration_days": 5,
-            "activities": ["swimming", "sunbathing"],
-            "start_date": "2024-04-01",
-            "created_at": "2024-01-15T10:30:00Z"
-        }
-    """
     id: UUID
     user_id: UUID
+    title: str
+    destination: Optional[str] = None
+    end_date: Optional[date] = None
+    status: str
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

@@ -24,7 +24,7 @@ Convention:
 - *Response: สำหรับส่งกลับ (output)
 """
 
-from app.schemas.user import UserBase, UserCreate, UserResponse
+from app.schemas.user import UserBase, UserCreate, UserLogin, UserResponse
 from app.schemas.trip import TripBase, TripCreate, TripUpdate, TripResponse
 from app.schemas.packing import (
     PackingItemBase,
@@ -42,11 +42,23 @@ from app.schemas.outfit import (
     SavedOutfitCreate,
     SavedOutfitResponse,
 )
+from app.schemas.checklist_template import (
+    ChecklistTemplateItem,
+    ChecklistTemplateCreate,
+    ChecklistTemplateResponse,
+)
+from app.schemas.packing_assistant import (
+    PackingAssistantRequest,
+    PackingAssistantResponse,
+    PackingListSection,
+    OutfitSuggestion,
+)
 
 __all__ = [
     # User schemas
     "UserBase",
     "UserCreate",
+    "UserLogin",
     "UserResponse",
     # Trip schemas
     "TripBase",
@@ -67,4 +79,13 @@ __all__ = [
     "OutfitSuggestionResponse",
     "SavedOutfitCreate",
     "SavedOutfitResponse",
+    # Checklist Template schemas
+    "ChecklistTemplateItem",
+    "ChecklistTemplateCreate",
+    "ChecklistTemplateResponse",
+    # Packing Assistant schemas
+    "PackingAssistantRequest",
+    "PackingAssistantResponse",
+    "PackingListSection",
+    "OutfitSuggestion",
 ]

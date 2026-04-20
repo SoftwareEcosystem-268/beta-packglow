@@ -20,12 +20,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
+import uuid
+import bcrypt
 
 from app.database import get_db
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserLogin, UserResponse
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 
 # =============================================================================
@@ -57,10 +63,42 @@ async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db))
         raise HTTPException(status_code=400, detail="Email already registered")
 
     # สร้าง user ใหม่
-    user = User(email=user_data.email)
+    user = User(
+        name=user_data.name,
+        email=user_data.email,
+        hashed_password=hash_password(user_data.password),
+    )
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    return user
+
+
+# =============================================================================
+# POST /users/login - เข้าสู่ระบบ
+# =============================================================================
+@router.post("/login", response_model=UserResponse)
+async def login_user(login_data: UserLogin, db: AsyncSession = Depends(get_db)):
+    """
+    เข้าสู่ระบบ
+
+    Request body:
+        {
+            "email": "user@example.com",
+            "password": "yourpassword"
+        }
+
+    Errors:
+        401: Invalid email or password
+    """
+    result = await db.execute(select(User).where(User.email == login_data.email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=401, detail="อีเมลหรือรหัสผ่านไม่ถูกต้อง")
+
+    if not bcrypt.checkpw(login_data.password.encode(), user.hashed_password.encode()):
+        raise HTTPException(status_code=401, detail="อีเมลหรือรหัสผ่านไม่ถูกต้อง")
+
     return user
 
 
@@ -97,7 +135,7 @@ async def get_users(db: AsyncSession = Depends(get_db)):
 # GET /users/{user_id} - ดู user ตาม ID
 # =============================================================================
 @router.get("/{user_id}", response_model=UserResponse)
-async def get_user(user_id: str, db: AsyncSession = Depends(get_db)):
+async def get_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """
     ดึง user ตาม ID
 
@@ -125,7 +163,7 @@ async def get_user(user_id: str, db: AsyncSession = Depends(get_db)):
 # DELETE /users/{user_id} - ลบ user
 # =============================================================================
 @router.delete("/{user_id}", status_code=204)
-async def delete_user(user_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """
     ลบ user ตาม ID
 

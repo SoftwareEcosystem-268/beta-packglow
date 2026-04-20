@@ -21,10 +21,12 @@ settings = get_settings()
 # Database Engine & Session
 # =============================================================================
 
-# แปลง postgresql:// เป็น postgresql+asyncpg:// สำหรับ async driver
-# หรือ sqlite:// เป็น sqlite+aiosqlite:// สำหรับ async SQLite
-db_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://")
-db_url = db_url.replace("sqlite://", "sqlite+aiosqlite://")
+# แปลง URL ให้ใช้ async driver ที่ถูกต้อง
+db_url = settings.database_url
+if db_url.startswith("postgresql://"):
+    db_url = "postgresql+asyncpg://" + db_url[len("postgresql://"):]
+elif db_url.startswith("sqlite://"):
+    db_url = "sqlite+aiosqlite://" + db_url[len("sqlite://"):]
 
 # สร้าง async engine - เป็นตัวจัดการการเชื่อมต่อ database หลัก
 # echo=settings.debug จะแสดง SQL queries ใน console เมื่อ debug mode เปิด
