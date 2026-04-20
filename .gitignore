@@ -214,7 +214,3 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-
-# SQLite temp files
-*.db-shm
-*.db-wal
