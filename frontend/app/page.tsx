@@ -105,10 +105,10 @@ export default function Home() {
     generatedResult, generating, generateSmartList } = usePacking();
   const { outfits: apiOutfits, savedOutfits, loading: outfitsLoading, toggleSave: toggleOutfitSave, isSaved: isOutfitSaved } = useOutfits();
   const { user, logout } = useAuth();
-  const [userTier, setUserTier] = useState<"free" | "pro">("free");
+  const [userTier, setUserTier] = useState<"free" | "pro">(() => {
+    return (localStorage.getItem("pg_user_tier") as "free" | "pro") || "free";
+  });
   useEffect(() => {
-    const saved = (localStorage.getItem("pg_user_tier") as "free" | "pro") || "free";
-    setUserTier(saved);
     const onStorage = () => {
       setUserTier((localStorage.getItem("pg_user_tier") as "free" | "pro") || "free");
     };

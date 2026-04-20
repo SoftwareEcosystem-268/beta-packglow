@@ -20,7 +20,7 @@ Schemas ใช้สำหรับ:
 - Response: สำหรับส่งกลับ (output)
 """
 
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from uuid import UUID
 
@@ -80,4 +80,5 @@ class UserResponse(UserBase):
     id: UUID
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
