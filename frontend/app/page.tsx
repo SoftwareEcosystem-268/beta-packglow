@@ -3,7 +3,7 @@
 import { usePacking } from "@/components/PackingContext";
 import { useOutfits } from "@/components/OutfitContext";
 import {
-  ArrowRight, Calendar, MapPin, ChevronLeft, ChevronRight,
+  ArrowRight, Calendar, MapPin, ChevronRight,
   Check, X, Plus, Star, Sparkles, User, Heart, Loader2, FolderOpen, Crown,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
