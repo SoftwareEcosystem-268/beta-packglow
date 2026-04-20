@@ -1,15 +1,17 @@
 "use client";
 
 import { usePacking } from "@/components/PackingContext";
+import { useOutfits } from "@/components/OutfitContext";
 import {
   ArrowRight, Calendar, MapPin, ChevronLeft, ChevronRight,
-  Check, X, Plus, Star, Sparkles, User,
+  Check, X, Plus, Star, Sparkles, User, Heart, Loader2, FolderOpen, Crown,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthContext";
 import { Button } from "@/components/ui/button";
+import DestinationPackingModal, { type DestinationData } from "@/components/DestinationPackingModal";
 
 /* ─── Destinations Data ─── */
 const destCategories = [
@@ -20,15 +22,15 @@ const destCategories = [
   { id: "culture", label: "วัฒนธรรม" },
 ];
 
-const destinations = [
-  { id: 1, name: "Monument of Berlin", location: "Berlin, Germany", image: "/asset/destinations/berlin.jpg", category: "city" },
-  { id: 2, name: "Millennium Bridge", location: "London, UK", image: "/asset/destinations/london.jpg", category: "city" },
-  { id: 3, name: "Rialto Bridge", location: "Venice, Italy", image: "/asset/destinations/venice.jpg", category: "city" },
-  { id: 4, name: "Sea of Orange Roofs", location: "Lisbon, Portugal", image: "/asset/destinations/lisbon.jpg", category: "culture" },
-  { id: 5, name: "Santorini Sunset", location: "Santorini, Greece", image: "/asset/destinations/santorini.jpg", category: "beach" },
-  { id: 6, name: "Bali Rice Terraces", location: "Bali, Indonesia", image: "/asset/destinations/bali.jpg", category: "nature" },
-  { id: 7, name: "Tokyo Tower", location: "Tokyo, Japan", image: "/asset/destinations/tokyo.jpg", category: "city" },
-  { id: 8, name: "Maldives Beach", location: "Maldives", image: "/asset/destinations/maldives.jpg", category: "beach" },
+const destinations: DestinationData[] = [
+  { id: 1, name: "Monument of Berlin", location: "Berlin, Germany", image: "/asset/destinations/berlin.jpg", category: "city", destinationType: "city", suggestedActivities: ["photography", "shopping", "dinner", "cycling"], climate: "Continental", description: "เมืองประวัติศาสตร์ที่ผสมผสานสถาปัตยกรรมเก่าแก่กับศิลปะร่วมสมัย" },
+  { id: 2, name: "Millennium Bridge", location: "London, UK", image: "/asset/destinations/london.jpg", category: "city", destinationType: "city", suggestedActivities: ["photography", "shopping", "dinner", "business"], climate: "Temperate", description: "เมืองหลวงที่เต็มไปด้วยวัฒนธรรม พิพิธภัณฑ์ และไลฟ์สไตล์ร่วมสมัย" },
+  { id: 3, name: "Rialto Bridge", location: "Venice, Italy", image: "/asset/destinations/venice.jpg", category: "city", destinationType: "city", suggestedActivities: ["photography", "dinner", "shopping"], climate: "Mediterranean", description: "เมืองแห่งคลองที่โรแมนติก สถาปัตยกรรมเรเนสซองส์ และอาหารอิตาเลียน" },
+  { id: 4, name: "Sea of Orange Roofs", location: "Lisbon, Portugal", image: "/asset/destinations/lisbon.jpg", category: "culture", destinationType: "city", suggestedActivities: ["photography", "hiking", "shopping", "dinner"], climate: "Mediterranean", description: "เมืองบนเนินเขาที่มีหลังคาสีส้ม ถนนหินทรุด และวัฒนธรรม Fado" },
+  { id: 5, name: "Santorini Sunset", location: "Santorini, Greece", image: "/asset/destinations/santorini.jpg", category: "beach", destinationType: "beach", suggestedActivities: ["swimming", "photography", "dinner", "snorkeling"], climate: "Mediterranean", description: "เกาะทะเลสีคราม อาคารขาวบนหน้าผา พร้อมพระอาทิตย์ตกที่สวยที่สุดในโลก" },
+  { id: 6, name: "Bali Rice Terraces", location: "Bali, Indonesia", image: "/asset/destinations/bali.jpg", category: "nature", destinationType: "mountain", suggestedActivities: ["swimming", "diving", "snorkeling", "temple", "yoga", "hiking"], climate: "Tropical", description: "ธรรมชาติเขตร้อน นาขั้นบันได วัดโบราณ และชีวิตที่เรียบง่าย" },
+  { id: 7, name: "Tokyo Tower", location: "Tokyo, Japan", image: "/asset/destinations/tokyo.jpg", category: "city", destinationType: "city", suggestedActivities: ["photography", "shopping", "temple", "dinner"], climate: "Temperate", description: "เมืองที่ผสมผสานวัฒนธรรมดั้งเดิมกับเทคโนโลยีล้ำสมัย" },
+  { id: 8, name: "Maldives Beach", location: "Maldives", image: "/asset/destinations/maldives.jpg", category: "beach", destinationType: "beach", suggestedActivities: ["swimming", "diving", "snorkeling", "photography"], climate: "Tropical", description: "น้ำทะเลใสระดับ world-class ชายหาดทรายขาว และวิลล่าริมน้ำ" },
 ];
 
 /* ─── Packing Data ─── */
@@ -42,18 +44,21 @@ const packingCategories = [
   { id: "others", label: "อื่น ๆ" },
 ];
 
-/* ─── Outfits Data ─── */
 const outfitFilters = [
   { id: "all", label: "ทั้งหมด" },
   { id: "day", label: "กลางวัน" },
   { id: "night", label: "กลางคืน" },
-  { id: "activity", label: "กิจกรรม" },
+  { id: "formal", label: "ทางการ" },
+  { id: "casual", label: "ลำลอง" },
 ];
 
-const outfitItems = [
-  { id: 1, day: "วันที่ 1", title: "Shibuya Night Out", image: "/asset/Shibuya Night Out.svg", category: "night" },
-  { id: 2, day: "วันที่ 2", title: "Asakusa Temple Visit", image: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&h=400&fit=crop", category: "day" },
-  { id: 3, day: "วันที่ 3", title: "Shinjuku Garden Picnic", image: "/asset/shiuku.png", category: "activity" },
+const outfitDestFilters = [
+  { id: "all", label: "ทั้งหมด" },
+  { id: "beach", label: "ชายหาด" },
+  { id: "mountain", label: "ภูเขา" },
+  { id: "city", label: "เมือง" },
+  { id: "ceremony", label: "พิธีการ" },
+  { id: "abroad", label: "ต่างประเทศ" },
 ];
 
 const partners = [
@@ -81,22 +86,36 @@ const proFeatures = [
 ];
 
 /* ─── Helper ─── */
-function getCategoryStats(categoryId: string, items: Record<string, { id: number; name: string; description: string; checked: boolean }[]>) {
+function getCategoryStats(categoryId: string, items: Record<string, { is_packed: boolean }[]>) {
   if (categoryId === "all") {
     let total = 0, completed = 0;
-    Object.values(items).forEach(ci => { total += ci.length; completed += ci.filter(i => i.checked).length; });
+    Object.values(items).forEach(ci => { total += ci.length; completed += ci.filter(i => i.is_packed).length; });
     return { completed, total };
   }
   const ci = items[categoryId] || [];
-  return { completed: ci.filter(i => i.checked).length, total: ci.length };
+  return { completed: ci.filter(i => i.is_packed).length, total: ci.length };
 }
 
 /* ─── Main Page ─── */
 export default function Home() {
   const router = useRouter();
-  const { items: packingItems, setItems } = usePacking();
+  const { items: packingItems, togglePacked, addCustomItemToTrip, removeChecklistItem,
+    isDirty, saving, saveChecklist, totalItemCount,
+    templates, refreshTemplates, saveAsTemplate, loadTemplate, removeTemplate,
+    generatedResult, generating, generateSmartList } = usePacking();
+  const { outfits: apiOutfits, savedOutfits, loading: outfitsLoading, toggleSave: toggleOutfitSave, isSaved: isOutfitSaved } = useOutfits();
   const { user, logout } = useAuth();
-  const [destination, setDestination] = useState("Tokyo");
+  const [userTier, setUserTier] = useState<"free" | "pro">("free");
+  useEffect(() => {
+    const saved = (localStorage.getItem("pg_user_tier") as "free" | "pro") || "free";
+    if (saved !== "free") setUserTier(saved);
+    const onStorage = () => {
+      setUserTier((localStorage.getItem("pg_user_tier") as "free" | "pro") || "free");
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+  const isPro = userTier === "pro";  const [destination, setDestination] = useState("Tokyo");
   const [person, setPerson] = useState("2");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
@@ -106,6 +125,7 @@ export default function Home() {
   const [newItemName, setNewItemName] = useState("");
   const [newItemDesc, setNewItemDesc] = useState("");
   const [outfitFilter, setOutfitFilter] = useState("all");
+  const [outfitDestFilter, setOutfitDestFilter] = useState("all");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const destScrollRef = useRef<HTMLDivElement>(null);
@@ -123,6 +143,55 @@ export default function Home() {
   const [stylistResult, setStylistResult] = useState<string | null>(null);
   const [stylistImages, setStylistImages] = useState<{day: string; night: string; activity: string} | null>(null);
   const [stylistLoading, setStylistLoading] = useState(false);
+
+  // Save/Template state
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [showLoadDropdown, setShowLoadDropdown] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState<DestinationData | null>(null);
+  const [showPackingModal, setShowPackingModal] = useState(false);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const showToast = (msg: string, type: "success" | "error" = "success") => setToast({ message: msg, type });
+
+  const handleSaveChecklist = async () => {
+    const ok = await saveChecklist();
+    showToast(ok ? "บันทึก checklist สำเร็จ" : "บันทึกไม่สำเร็จ", ok ? "success" : "error");
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) return;
+    setTemplateLoading(true);
+    const ok = await saveAsTemplate(templateName.trim());
+    setTemplateLoading(false);
+    if (ok) {
+      showToast(`บันทึกเทมเพลต "${templateName.trim()}" สำเร็จ`);
+      setTemplateName("");
+      setShowTemplateModal(false);
+    } else {
+      showToast("ไม่สามารถบันทึกเทมเพลตได้", "error");
+    }
+  };
+
+  const handleOpenLoad = async () => {
+    if (!showLoadDropdown) await refreshTemplates();
+    setShowLoadDropdown(!showLoadDropdown);
+  };
+
+  const handleLoadTemplate = async (tpl: typeof templates[number]) => {
+    setTemplateLoading(true);
+    const ok = await loadTemplate(tpl);
+    setTemplateLoading(false);
+    setShowLoadDropdown(false);
+    showToast(ok ? `โหลด "${tpl.name}" สำเร็จ` : "โหลดไม่สำเร็จ", ok ? "success" : "error");
+  };
 
   const generateOutfitRecommendation = () => {
     if (!stylistData.location.trim()) return;
@@ -249,24 +318,35 @@ export default function Home() {
     return `${days[d.getDay()]}, ${d.getDate()}${suffix} ${months[d.getMonth()]} ${d.getFullYear()}`;
   };
 
-  const addItem = () => {
+  const [addError, setAddError] = useState("");
+
+  const addItem = async () => {
     if (!newItemName.trim() || activePackCat === "all") return;
-    setItems(prev => ({ ...prev, [activePackCat]: [...(prev[activePackCat] || []), { id: Date.now(), name: newItemName.trim(), description: newItemDesc.trim(), checked: false }] }));
-    setNewItemName(""); setNewItemDesc(""); setShowAddForm(false);
+    setAddError("");
+    const ok = await addCustomItemToTrip(activePackCat, newItemName.trim());
+    if (ok) {
+      setNewItemName(""); setNewItemDesc(""); setShowAddForm(false);
+    } else {
+      setAddError("ไม่สามารถเพิ่มรายการได้ กรุณาลองใหม่");
+    }
   };
 
-  const togglePackItem = (cat: string, id: number) => {
-    setItems(prev => ({ ...prev, [cat]: prev[cat].map(i => i.id === id ? { ...i, checked: !i.checked } : i) }));
+  const togglePackItem = (id: string, packed: boolean) => {
+    togglePacked(id, packed);
   };
 
-  const deletePackItem = (cat: string, id: number) => {
-    setItems(prev => ({ ...prev, [cat]: prev[cat].filter(i => i.id !== id) }));
+  const deletePackItem = (id: string) => {
+    removeChecklistItem(id);
   };
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
   const filteredDest = destFilter === "all" ? destinations : destinations.filter(d => d.category === destFilter);
-  const filteredOutfits = outfitFilter === "all" ? outfitItems : outfitItems.filter(o => o.category === outfitFilter);
+  const filteredOutfits = apiOutfits.filter(o => {
+    if (outfitFilter !== "all" && o.occasion !== outfitFilter) return false;
+    if (outfitDestFilter !== "all" && o.destination_type !== outfitDestFilter) return false;
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-[#F5F3EF] overflow-x-hidden">
@@ -292,14 +372,24 @@ export default function Home() {
         <div className="flex items-center gap-4">
           {user ? (
             <div className="relative" ref={menuRef}>
-              <button onClick={() => setMenuOpen(!menuOpen)} className="w-9 h-9 rounded-full bg-brand flex items-center justify-center hover:bg-brand-dark transition-colors">
+              <button onClick={() => setMenuOpen(!menuOpen)} className="relative w-9 h-9 rounded-full bg-brand flex items-center justify-center hover:bg-brand-dark transition-colors">
                 <User className="w-5 h-5 text-white" />
+                {isPro ? (
+                  <Crown className="absolute -top-1.5 -right-1.5 w-4 h-4 text-yellow-400 fill-yellow-400 drop-shadow-sm" />
+                ) : (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-gray-300 border-2 border-white/80" />
+                )}
               </button>
               {menuOpen && (
                 <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-                    <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                  <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isPro ? "bg-brand" : "bg-gray-300"}`}>
+                      {isPro ? <Crown className="w-4 h-4 text-yellow-400 fill-yellow-400" /> : <User className="w-4 h-4 text-white" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                      <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                    </div>
                   </div>
                   <button onClick={() => { logout(); router.push("/"); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">
                     ออกจากระบบ
@@ -382,7 +472,7 @@ export default function Home() {
         </div>
         <div ref={destScrollRef} className="flex gap-6 overflow-hidden">
           {[...filteredDest, ...filteredDest].map((d, i) => (
-            <div key={`${d.id}-${i}`} className="flex-shrink-0 w-72 group cursor-pointer">
+            <div key={`${d.id}-${i}`} className="flex-shrink-0 w-72 group cursor-pointer" onClick={() => { setSelectedDestination(d); setShowPackingModal(true); }}>
               <div className="relative h-80 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
                 <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${d.image}')`, backgroundColor: "#e5e5e5" }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
@@ -399,7 +489,19 @@ export default function Home() {
       {/* ─── PACKING ─── */}
       <section id="packing" className="bg-white py-20">
         <div className="max-w-6xl mx-auto px-6 md:px-16">
-          <div className="flex items-start justify-end mb-8">
+          <div className="flex items-center justify-between mb-8">
+            <button
+              onClick={generateSmartList}
+              disabled={generating}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Sparkles className="w-5 h-5" />
+              {generating ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> กำลังสร้างรายการ...</>
+              ) : (
+                "✨ สร้างรายการอัตโนมัติ"
+              )}
+            </button>
             <h2 className="text-4xl font-normal text-black underline decoration-brand underline-offset-12">Packing</h2>
           </div>
           <div className="flex gap-8">
@@ -426,15 +528,14 @@ export default function Home() {
                       <h3 className="text-lg font-semibold text-gray-800 mb-3">{cat.label}</h3>
                       <div className="grid gap-3">
                         {(packingItems[cat.id] || []).map(item => (
-                          <div key={item.id} className={`flex items-start gap-4 p-4 rounded-xl transition-all ${item.checked ? "bg-white shadow-sm" : "bg-gray-100"}`}>
-                            <div onClick={() => togglePackItem(cat.id, item.id)} className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 cursor-pointer ${item.checked ? "bg-brand" : "border-2 border-gray-300"}`}>
-                              {item.checked && <Check className="w-4 h-4 text-white" />}
+                          <div key={item.id} className={`flex items-start gap-4 p-4 rounded-xl transition-all ${item.is_packed ? "bg-white shadow-sm" : "bg-gray-100"}`}>
+                            <div onClick={() => togglePackItem(item.id, item.is_packed)} className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 cursor-pointer ${item.is_packed ? "bg-brand" : "border-2 border-gray-300"}`}>
+                              {item.is_packed && <Check className="w-4 h-4 text-white" />}
                             </div>
-                            <div className="flex-1 cursor-pointer" onClick={() => togglePackItem(cat.id, item.id)}>
-                              <h4 className={`font-medium ${item.checked ? "text-gray-900" : "text-gray-700"}`}>{item.name}</h4>
-                              <p className="text-sm text-gray-500">{item.description}</p>
+                            <div className="flex-1 cursor-pointer" onClick={() => togglePackItem(item.id, item.is_packed)}>
+                              <h4 className={`font-medium ${item.is_packed ? "text-gray-900" : "text-gray-700"}`}>{item.display_name}</h4>
                             </div>
-                            <button onClick={() => deletePackItem(cat.id, item.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 transition-all flex-shrink-0 mt-0.5">
+                            <button onClick={() => deletePackItem(item.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 transition-all flex-shrink-0 mt-0.5">
                               <X className="w-4 h-4" />
                             </button>
                           </div>
@@ -446,40 +547,252 @@ export default function Home() {
               ) : (
                 <div className="grid gap-3">
                   {(packingItems[activePackCat] || []).map(item => (
-                    <div key={item.id} className={`flex items-start gap-4 p-4 rounded-xl transition-all ${item.checked ? "bg-white shadow-sm" : "bg-gray-100"}`}>
-                      <div onClick={() => togglePackItem(activePackCat, item.id)} className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 cursor-pointer ${item.checked ? "bg-brand" : "border-2 border-gray-300"}`}>
-                        {item.checked && <Check className="w-4 h-4 text-white" />}
+                    <div key={item.id} className={`flex items-start gap-4 p-4 rounded-xl transition-all ${item.is_packed ? "bg-white shadow-sm" : "bg-gray-100"}`}>
+                      <div onClick={() => togglePackItem(item.id, item.is_packed)} className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 cursor-pointer ${item.is_packed ? "bg-brand" : "border-2 border-gray-300"}`}>
+                        {item.is_packed && <Check className="w-4 h-4 text-white" />}
                       </div>
-                      <div className="flex-1 cursor-pointer" onClick={() => togglePackItem(activePackCat, item.id)}>
-                        <h4 className={`font-medium ${item.checked ? "text-gray-900" : "text-gray-700"}`}>{item.name}</h4>
-                        <p className="text-sm text-gray-500">{item.description}</p>
+                      <div className="flex-1 cursor-pointer" onClick={() => togglePackItem(item.id, item.is_packed)}>
+                        <h4 className={`font-medium ${item.is_packed ? "text-gray-900" : "text-gray-700"}`}>{item.display_name}</h4>
                       </div>
-                      <button onClick={() => deletePackItem(activePackCat, item.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 transition-all flex-shrink-0 mt-0.5">
+                      <button onClick={() => deletePackItem(item.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 transition-all flex-shrink-0 mt-0.5">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
                   {showAddForm ? (
                     <div className="p-4 rounded-xl border-2 border-brand bg-white space-y-3">
-                      <input type="text" placeholder="ชื่อรายการ" value={newItemName} onChange={e => setNewItemName(e.target.value)} onKeyDown={e => e.key === "Enter" && addItem()} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-brand text-gray-900" autoFocus />
+                      <input type="text" placeholder="ชื่อรายการ" value={newItemName} onChange={e => { setNewItemName(e.target.value); setAddError(""); }} onKeyDown={e => e.key === "Enter" && addItem()} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-brand text-gray-900" autoFocus />
                       <input type="text" placeholder="รายละเอียด (ไม่จำเป็น)" value={newItemDesc} onChange={e => setNewItemDesc(e.target.value)} onKeyDown={e => e.key === "Enter" && addItem()} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-brand text-gray-900" />
+                      {addError && <p className="text-sm text-red-500">{addError}</p>}
                       <div className="flex gap-2">
                         <button onClick={addItem} disabled={!newItemName.trim()} className="px-4 py-2 rounded-lg bg-brand text-white font-medium hover:bg-brand-dark transition-colors disabled:opacity-40">เพิ่ม</button>
                         <button onClick={() => { setShowAddForm(false); setNewItemName(""); setNewItemDesc(""); }} className="px-4 py-2 rounded-lg bg-gray-200 text-gray-600 font-medium hover:bg-gray-300 transition-colors">ยกเลิก</button>
                       </div>
                     </div>
-                  ) : (
+                  ) : isPro ? (
                     <button onClick={() => setShowAddForm(true)} className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-brand hover:text-brand transition-all">
                       <div className="w-6 h-6 rounded-md border-2 border-current flex items-center justify-center"><Plus className="w-4 h-4" /></div>
                       <span className="font-medium">เพิ่มรายการ</span>
+                    </button>
+                  ) : (
+                    <button onClick={() => scrollTo("pricing")} className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-brand hover:text-brand transition-all">
+                      <div className="w-6 h-6 rounded-md border-2 border-current flex items-center justify-center"><Plus className="w-4 h-4" /></div>
+                      <span className="font-medium">เพิ่มรายการ <span className="text-xs text-brand ml-1">PRO</span></span>
                     </button>
                   )}
                 </div>
               )}
             </div>
           </div>
+
+          {/* Save / Template Bar */}
+          <div className="mt-8 pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              {isDirty ? (
+                <>
+                  <span className="w-2.5 h-2.5 rounded-full bg-orange-400" />
+                  <span className="text-sm text-orange-600 font-medium">มีการเปลี่ยนแปลง</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-green-600 font-medium">บันทึกแล้ว</span>
+                </>
+              )}
+              <span className="text-xs text-gray-400 ml-2">{totalItemCount} รายการ</span>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={handleSaveChecklist}
+                disabled={totalItemCount === 0 || saving}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "💾"}
+                บันทึก Checklist
+              </button>
+              <button
+                onClick={() => setShowTemplateModal(true)}
+                disabled={totalItemCount === 0}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#5A4A3D] text-white font-bold hover:bg-[#4A3A2D] transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                📌 บันทึกเป็น Template
+              </button>
+              <div className="relative">
+                <button
+                  onClick={handleOpenLoad}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-brand text-brand font-bold hover:bg-brand hover:text-white transition-all"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  ใช้เทมเพลต
+                </button>
+                {showLoadDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 max-h-60 overflow-y-auto">
+                    {templates.length === 0 ? (
+                      <p className="px-4 py-3 text-sm text-gray-400 text-center">ยังไม่มีเทมเพลต</p>
+                    ) : (
+                      templates.map((tpl) => (
+                        <div key={tpl.id} className="flex items-center gap-2 px-4 py-3 hover:bg-brand/5 transition-colors">
+                          <button
+                            onClick={() => handleLoadTemplate(tpl)}
+                            disabled={templateLoading}
+                            className="flex-1 text-left"
+                          >
+                            <p className="text-sm font-medium text-gray-800">{tpl.name}</p>
+                            <p className="text-xs text-gray-400">{tpl.items.length} รายการ</p>
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); removeTemplate(tpl.id); }}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* Template Name Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setShowTemplateModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-96 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">📌 บันทึกเป็น Template</h3>
+            <input
+              type="text"
+              placeholder="ตั้งชื่อ template..."
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveTemplate()}
+              className="w-full px-4 py-3 rounded-xl border-2 border-brand/40 focus:outline-none focus:border-brand text-gray-900"
+              autoFocus
+            />
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleSaveTemplate}
+                disabled={!templateName.trim() || templateLoading}
+                className="flex-1 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-colors disabled:opacity-40"
+              >
+                {templateLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "บันทึก"}
+              </button>
+              <button
+                onClick={() => { setShowTemplateModal(false); setTemplateName(""); }}
+                className="px-6 py-3 rounded-xl bg-gray-200 text-gray-600 font-medium hover:bg-gray-300 transition-colors"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-lg text-white font-medium text-sm z-50 transition-all ${
+          toast.type === "success" ? "bg-green-600" : "bg-red-500"
+        }`}>
+          {toast.type === "success" && <span className="mr-2">✓</span>}
+          {toast.type === "error" && <span className="mr-2">✕</span>}
+          {toast.message}
+        </div>
+      )}
+
+      {/* Free user: show locked PRO features */}
+      {!isPro && (
+        <section className="bg-[#F5F3EF] py-16">
+          <div className="max-w-6xl mx-auto px-6 md:px-16">
+            <div className="flex items-center gap-3 mb-8">
+              <span className="px-3 py-1 rounded-full bg-gray-400 text-white text-xs font-bold">PRO</span>
+              <h2 className="text-2xl font-bold text-gray-900">อัปเกรดเพื่อปลดล็อคฟีเจอร์เพิ่มเติม</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white rounded-2xl p-6 shadow-md relative opacity-80">
+                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                </div>
+                <h3 className="font-bold text-gray-800 mb-2">Custom Checklist</h3>
+                <p className="text-sm text-gray-500">รายการตามกิจกรรมแบบเฉพาะเจาะจง — hiking, swimming, dinner และอื่นๆ</p>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-md relative opacity-80">
+                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                </div>
+                <h3 className="font-bold text-gray-800 mb-2">Outfit Moodboard</h3>
+                <p className="text-sm text-gray-500">ชุดแต่งตัวแนะนำพร้อม style tags — casual, sporty, elegant</p>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-md relative opacity-80">
+                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                </div>
+                <h3 className="font-bold text-gray-800 mb-2">AI Smart Matching</h3>
+                <p className="text-sm text-gray-500">อธิบายว่าทำไมชุดนี้เหมาะกับสถานที่และกิจกรรมของคุณ</p>
+              </div>
+            </div>
+            <button onClick={() => { localStorage.setItem("pg_user_tier", "pro"); setUserTier("pro"); showToast("อัปเกรดเป็น Pro สำเร็จ!"); }} className="mt-6 flex items-center gap-2 mx-auto px-8 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all shadow-md">
+              <Star className="w-5 h-5" />อัปเกรด Pro
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* PRO Results: Custom Suggestions & Outfits */}
+      {generatedResult && isPro && (generatedResult.custom_suggestions.length > 0 || generatedResult.outfits.length > 0) && (
+        <section className="bg-[#F5F3EF] py-16">
+          <div className="max-w-6xl mx-auto px-6 md:px-16">
+            <div className="flex items-center gap-3 mb-8">
+              <span className="px-3 py-1 rounded-full bg-brand text-white text-xs font-bold">PRO</span>
+              <h2 className="text-2xl font-bold text-gray-900">คำแนะนำเพิ่มเติมจาก AI</h2>
+            </div>
+
+            {/* Custom Suggestions */}
+            {generatedResult.custom_suggestions.length > 0 && (
+              <div className="mb-10">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">รายการตามกิจกรรม</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {generatedResult.custom_suggestions.map((suggestion, i) => (
+                    <div key={i} className="flex items-center gap-3 p-4 rounded-xl bg-white shadow-sm">
+                      <div className="w-6 h-6 rounded-md bg-brand flex items-center justify-center flex-shrink-0">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-sm text-gray-700">{suggestion}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Outfit Moodboard */}
+            {generatedResult.outfits.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Outfit Moodboard</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {generatedResult.outfits.map((outfit, i) => (
+                    <div key={i} className="bg-white rounded-2xl p-6 shadow-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-bold text-gray-900">{outfit.name}</h4>
+                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-brand/10 text-brand">{outfit.style}</span>
+                      </div>
+                      <ul className="space-y-1.5 mb-4">
+                        {outfit.items.map((item, j) => (
+                          <li key={j} className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="w-1.5 h-1.5 rounded-full bg-brand" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-sm text-gray-500 italic border-t border-gray-100 pt-3">{outfit.match_reason}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ─── OUTFITS ─── */}
       <section id="outfits" className="px-6 md:px-16 lg:px-24 py-20">
@@ -491,23 +804,24 @@ export default function Home() {
             </div>
             <div className="text-white text-center md:text-left">
               <h3 className="text-xl md:text-2xl font-bold mb-1">Outfit Moodboard & AI Smart Matching</h3>
-              <p className="text-white/70 text-sm md:text-base">AI จับคู่ชุดกับสถานที่และสภาพอากาศ — สำหรับสมาชิก Pro</p>
+              <p className="text-white/70 text-sm md:text-base">AI จับคู่ชุดกับการเดินทางและสภาพอากาศ — สำหรับสมาชิก Pro</p>
             </div>
           </div>
-          <button onClick={() => scrollTo("pricing")} className="flex items-center gap-2 bg-[#F4A940] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#E09830] transition-colors shadow-md whitespace-nowrap">
+          <button onClick={() => { localStorage.setItem("pg_user_tier", "pro"); setUserTier("pro"); scrollTo("pricing"); }} className="flex items-center gap-2 bg-[#F4A940] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#E09830] transition-colors shadow-md whitespace-nowrap">
             <Star className="w-4 h-4 fill-white" />อัปเกรด Pro
           </button>
         </div>
 
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
           <h2 className="text-2xl md:text-5xl text-gray-900">Outfits <span className="text-3xl font-base text-gray-500 ml-2">ประจำทริป</span></h2>
           <div className="flex gap-2 flex-wrap items-center">
             <button
-              onClick={() => setStylistOpen(!stylistOpen)}
-              className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-[#C97D4E] to-[#A66B3F] text-white hover:opacity-90 transition-all shadow-md"
+              onClick={() => isPro ? setStylistOpen(!stylistOpen) : null}
+              className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all shadow-md ${isPro ? "bg-gradient-to-r from-[#C97D4E] to-[#A66B3F] text-white hover:opacity-90" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
             >
               <Sparkles className="w-4 h-4" />
               AI Stylist
+              {!isPro && <span className="text-xs ml-1">PRO</span>}
             </button>
             {outfitFilters.map(f => (
               <button key={f.id} onClick={() => setOutfitFilter(f.id)} className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${outfitFilter === f.id ? "bg-brand text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}>
@@ -516,6 +830,48 @@ export default function Home() {
             ))}
           </div>
         </div>
+
+        {/* Destination Type Filters */}
+        <div className="flex gap-2 flex-wrap items-center mb-8">
+          {outfitDestFilters.map(f => (
+            <button key={f.id} onClick={() => setOutfitDestFilter(f.id)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${outfitDestFilter === f.id ? "bg-[#5A4A3D] text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Moodboard - Saved Outfits */}
+        {savedOutfits.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+              <h3 className="text-lg font-bold text-gray-900">Moodboard — ชุดที่บันทึกไว้</h3>
+              <span className="text-sm text-gray-400 ml-2">({savedOutfits.length})</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {savedOutfits.map((saved) => (
+                <div key={saved.id} className="relative rounded-xl overflow-hidden shadow-md group aspect-[3/4]">
+                  <img
+                    src={saved.outfit?.image_url || "/asset/Shibuya Night Out.svg"}
+                    alt={saved.outfit?.description || "Saved outfit"}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  <button
+                    onClick={() => toggleOutfitSave(saved.outfit_id)}
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 transition-colors"
+                  >
+                    <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                  </button>
+                  <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+                    <p className="text-xs line-clamp-2 font-medium">{saved.outfit?.description || "Outfit"}</p>
+                    <p className="text-[10px] text-white/60 mt-1">{saved.outfit?.destination_type} · {saved.outfit?.occasion}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* AI Stylist Form */}
         {stylistOpen && (
@@ -532,7 +888,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">สถานที่</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">จุดหมายปลายทาง</label>
                 <input
                   type="text"
                   placeholder="เช่น โตเกียว, ปารีส, ภูเก็ต"
@@ -670,16 +1026,31 @@ export default function Home() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {filteredOutfits.map(o => (
-            <div key={o.id} className="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group aspect-[4/5]">
-              <img src={o.image} alt={o.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
-                <p className="text-sm text-white/80 mb-1">{o.day}</p>
-                <h3 className="text-lg font-semibold">{o.title}</h3>
-              </div>
+          {outfitsLoading ? (
+            <div className="col-span-full flex items-center justify-center py-12"><Loader2 className="w-8 h-8 text-brand animate-spin" /></div>
+          ) : filteredOutfits.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-gray-400">
+              <p>ยังไม่มี Outfit suggestions</p>
             </div>
-          ))}
+          ) : (
+            filteredOutfits.map(o => (
+              <div key={o.id} className="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group aspect-[4/5]">
+                <img src={o.image_url || "/asset/Shibuya Night Out.svg"} alt={o.description || "Outfit"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                <button onClick={() => isPro ? toggleOutfitSave(o.id) : null} className={`absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors ${isPro ? "bg-white/20 hover:bg-white/40" : "bg-white/10 cursor-not-allowed"}`}>
+                  <Heart className={`w-5 h-5 ${isPro && isOutfitSaved(o.id) ? "text-red-500 fill-red-500" : isPro ? "text-white" : "text-white/40"}`} />
+                </button>
+                <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">{o.occasion}</span>
+                    {o.weather_condition && <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">{o.weather_condition}</span>}
+                  </div>
+                  <h3 className="text-lg font-semibold">{o.description || `${o.destination_type} - ${o.occasion}`}</h3>
+                  <p className="text-sm text-white/70">{o.destination_type}</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         <h3 className="text-xl text-gray-900 mb-6 flex items-center gap-2">ช้อปเพิ่มเติมจาก Partner <ChevronRight className="w-5 h-5 text-brand" /></h3>
@@ -697,6 +1068,14 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* Destination Packing Modal */}
+      {showPackingModal && selectedDestination && (
+        <DestinationPackingModal
+          destination={selectedDestination}
+          onClose={() => { setShowPackingModal(false); setSelectedDestination(null); }}
+        />
+      )}
 
       {/* ─── PRICING ─── */}
       <section id="pricing" className="bg-white py-20">
@@ -722,7 +1101,7 @@ export default function Home() {
                   ))}
                 </ul>
               </div>
-              <button className="w-full py-3 px-6 rounded-xl border-2 border-brand text-brand font-semibold hover:bg-brand hover:text-white transition-colors">ใช้งานฟรี</button>
+              <button onClick={() => { localStorage.setItem("pg_user_tier", "free"); setUserTier("free"); showToast("ใช้งาน Free tier แล้ว"); }} className="w-full py-3 px-6 rounded-xl border-2 border-brand text-brand font-semibold hover:bg-brand hover:text-white transition-colors">ใช้งานฟรี</button>
             </div>
             {/* Pro */}
             <div className="bg-gradient-to-br from-[#FDF0E6] to-[#F5E6D8] rounded-2xl p-8 shadow-lg relative">
@@ -740,7 +1119,7 @@ export default function Home() {
                   ))}
                 </ul>
               </div>
-              <button className="w-full py-3 px-6 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark transition-colors shadow-md">เริ่มทดลองใช้ฟรี 7 วัน</button>
+              <button onClick={() => { localStorage.setItem("pg_user_tier", "pro"); setUserTier("pro"); showToast("อัปเกรดเป็น Pro สำเร็จ! ลองกด ✨ สร้างรายการอัตโนมัติ ที่ Packing"); }} className="w-full py-3 px-6 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark transition-colors shadow-md">เริ่มทดลองใช้ฟรี 7 วัน</button>
             </div>
           </div>
         </div>

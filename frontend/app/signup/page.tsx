@@ -16,18 +16,18 @@ export default function SignUpPage() {
   const { signup } = useAuth();
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (!agreed) {
       setError("กรุณายอมรับข้อกำหนดการใช้งาน");
       return;
     }
-    const err = signup(name, email, password);
+    const err = await signup(name, email, password);
     if (err) {
       setError(err);
     } else {
-      router.push("/");
+      router.push("/login");
     }
   };
 

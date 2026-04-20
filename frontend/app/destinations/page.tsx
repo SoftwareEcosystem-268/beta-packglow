@@ -1,6 +1,7 @@
 "use client";
 
 import Navbar from "@/components/Navbar";
+import DestinationPackingModal, { type DestinationData } from "@/components/DestinationPackingModal";
 import { MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useRef } from "react";
 
@@ -13,13 +14,17 @@ const categories = [
   { id: "nearby", label: "ใกล้เมือง" },
 ];
 
-const destinations = [
+const destinations: DestinationData[] = [
   {
     id: 1,
     name: "Monument of Berlin",
     location: "Berlin, Germany",
     image: "/asset/destinations/berlin.jpg",
     category: "city",
+    destinationType: "city",
+    suggestedActivities: ["photography", "shopping", "dinner", "cycling"],
+    climate: "Continental",
+    description: "เมืองประวัติศาสตร์ที่ผสมผสานสถาปัตยกรรมเก่าแก่กับศิลปะร่วมสมัย",
   },
   {
     id: 2,
@@ -27,6 +32,10 @@ const destinations = [
     location: "London, UK",
     image: "/asset/destinations/london.jpg",
     category: "city",
+    destinationType: "city",
+    suggestedActivities: ["photography", "shopping", "dinner", "business"],
+    climate: "Temperate",
+    description: "เมืองหลวงที่เต็มไปด้วยวัฒนธรรม พิพิธภัณฑ์ และไลฟ์สไตล์ร่วมสมัย",
   },
   {
     id: 3,
@@ -34,6 +43,10 @@ const destinations = [
     location: "Venice, Italy",
     image: "/asset/destinations/venice.jpg",
     category: "city",
+    destinationType: "city",
+    suggestedActivities: ["photography", "dinner", "shopping"],
+    climate: "Mediterranean",
+    description: "เมืองแห่งคลองที่โรแมนติก สถาปัตยกรรมเรเนสซองส์ และอาหารอิตาเลียน",
   },
   {
     id: 4,
@@ -41,6 +54,10 @@ const destinations = [
     location: "Lisbon, Portugal",
     image: "/asset/destinations/lisbon.jpg",
     category: "culture",
+    destinationType: "city",
+    suggestedActivities: ["photography", "hiking", "shopping", "dinner"],
+    climate: "Mediterranean",
+    description: "เมืองบนเนินเขาที่มีหลังคาสีส้ม ถนนหินทรุด และวัฒนธรรม Fado",
   },
   {
     id: 5,
@@ -48,6 +65,10 @@ const destinations = [
     location: "Santorini, Greece",
     image: "/asset/destinations/santorini.jpg",
     category: "beach",
+    destinationType: "beach",
+    suggestedActivities: ["swimming", "photography", "dinner", "snorkeling"],
+    climate: "Mediterranean",
+    description: "เกาะทะเลสีคราม อาคารขาวบนหน้าผา พร้อมพระอาทิตย์ตกที่สวยที่สุดในโลก",
   },
   {
     id: 6,
@@ -55,6 +76,10 @@ const destinations = [
     location: "Bali, Indonesia",
     image: "/asset/destinations/bali.jpg",
     category: "nature",
+    destinationType: "mountain",
+    suggestedActivities: ["swimming", "diving", "snorkeling", "temple", "yoga", "hiking"],
+    climate: "Tropical",
+    description: "ธรรมชาติเขตร้อน นาขั้นบันได วัดโบราณ และชีวิตที่เรียบง่าย",
   },
   {
     id: 7,
@@ -62,6 +87,10 @@ const destinations = [
     location: "Tokyo, Japan",
     image: "/asset/destinations/tokyo.jpg",
     category: "city",
+    destinationType: "city",
+    suggestedActivities: ["photography", "shopping", "temple", "dinner"],
+    climate: "Temperate",
+    description: "เมืองที่ผสมผสานวัฒนธรรมดั้งเดิมกับเทคโนโลยีล้ำสมัย",
   },
   {
     id: 8,
@@ -69,6 +98,10 @@ const destinations = [
     location: "Maldives",
     image: "/asset/destinations/maldives.jpg",
     category: "beach",
+    destinationType: "beach",
+    suggestedActivities: ["swimming", "diving", "snorkeling", "photography"],
+    climate: "Tropical",
+    description: "น้ำทะเลใสระดับ world-class ชายหาดทรายขาว และวิลล่าริมน้ำ",
   },
 ];
 
@@ -76,6 +109,20 @@ export default function DestinationsPage() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [isPaused, setIsPaused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [selectedDestination, setSelectedDestination] = useState<DestinationData | null>(null);
+  const [showPackingModal, setShowPackingModal] = useState(false);
+
+  const handleCardClick = (dest: DestinationData) => {
+    setSelectedDestination(dest);
+    setShowPackingModal(true);
+    setIsPaused(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowPackingModal(false);
+    setSelectedDestination(null);
+    setIsPaused(false);
+  };
 
   const filteredDestinations =
     activeCategory === "all"
@@ -166,6 +213,7 @@ export default function DestinationsPage() {
               <div
                 key={`${destination.id}-${index}`}
                 className="flex-shrink-0 w-72 group cursor-pointer"
+                onClick={() => handleCardClick(destination)}
               >
                 <div className="relative h-80 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
                   {/* Background Image */}
@@ -196,6 +244,14 @@ export default function DestinationsPage() {
           </div>
         </div>
       </main>
+
+      {/* Packing Recommendation Modal */}
+      {showPackingModal && selectedDestination && (
+        <DestinationPackingModal
+          destination={selectedDestination}
+          onClose={handleCloseModal}
+        />
+      )}
 
       {/* CSS Animation Keyframes */}
       <style jsx global>{`

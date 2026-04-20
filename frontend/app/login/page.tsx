@@ -14,10 +14,10 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const err = login(email, password);
+    const err = await login(email, password);
     if (err) {
       setError(err);
     } else {
