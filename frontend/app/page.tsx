@@ -106,6 +106,7 @@ export default function Home() {
   const { outfits: apiOutfits, savedOutfits, loading: outfitsLoading, toggleSave: toggleOutfitSave, isSaved: isOutfitSaved } = useOutfits();
   const { user, logout } = useAuth();
   const [userTier, setUserTier] = useState<"free" | "pro">(() => {
+    if (typeof window === 'undefined') return "free";
     return (localStorage.getItem("pg_user_tier") as "free" | "pro") || "free";
   });
   useEffect(() => {

@@ -21,6 +21,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
+    if (typeof window === 'undefined') return null;
     try {
       const stored = localStorage.getItem("pg_current_user");
       return stored ? JSON.parse(stored) : null;
