@@ -2,7 +2,9 @@
 
 import Navbar from "@/components/Navbar";
 import { usePacking } from "@/components/PackingContext";
-import { ChevronLeft, Calendar, User, MapPin, Check } from "lucide-react";
+import { useAuth } from "@/components/AuthContext";
+import { useTrips } from "@/components/TripContext";
+import { ChevronLeft, Calendar, User, MapPin, Check, Loader2 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
 
@@ -19,7 +21,10 @@ function BookingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { items: packingItems } = usePacking();
+  const { user } = useAuth();
+  const { createNewTrip, setCurrentTrip } = useTrips();
   const [confirmed, setConfirmed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const destination = searchParams.get("destination") || "";
   const person = searchParams.get("person") || "1";
   const checkIn = searchParams.get("checkIn") || "";
@@ -138,21 +143,20 @@ function BookingContent() {
                       <div
                         key={item.id}
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
-                          item.checked ? "bg-brand/5" : "bg-gray-50"
+                          item.is_packed ? "bg-brand/5" : "bg-gray-50"
                         }`}
                       >
                         <div
                           className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
-                            item.checked ? "bg-brand" : "border border-gray-300"
+                            item.is_packed ? "bg-brand" : "border border-gray-300"
                           }`}
                         >
-                          {item.checked && <Check className="w-3 h-3 text-white" />}
+                          {item.is_packed && <Check className="w-3 h-3 text-white" />}
                         </div>
                         <div className="min-w-0">
-                          <p className={`text-sm font-medium ${item.checked ? "text-gray-900" : "text-gray-400 line-through"}`}>
-                            {item.name}
+                          <p className={`text-sm font-medium ${item.is_packed ? "text-gray-900" : "text-gray-400 line-through"}`}>
+                            {item.display_name}
                           </p>
-                          <p className="text-xs text-gray-400 truncate">{item.description}</p>
                         </div>
                       </div>
                     ))}
@@ -167,7 +171,7 @@ function BookingContent() {
               เตรียมแล้ว{" "}
               <strong className="text-brand">
                 {Object.values(packingItems).reduce(
-                  (acc, cat) => acc + cat.filter(i => i.checked).length, 0
+                  (acc, cat) => acc + cat.filter(i => i.is_packed).length, 0
                 )}
               </strong>{" "}
               /{" "}
@@ -178,10 +182,38 @@ function BookingContent() {
 
         {/* Confirm Button */}
         <button
-          onClick={() => setConfirmed(true)}
-          className="w-full py-4 rounded-2xl bg-brand hover:bg-brand-dark transition-colors text-white font-bold text-lg"
+          onClick={async () => {
+            if (submitting) return;
+            setSubmitting(true);
+            if (!user) {
+              alert("กรุณาเข้าสู่ระบบก่อนทำการจอง");
+              setSubmitting(false);
+              return;
+            }
+            {
+              const start = checkIn ? new Date(checkIn) : null;
+              const end = checkOut ? new Date(checkOut) : null;
+              const days = start && end ? Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))) : 1;
+              const newTrip = await createNewTrip({
+                user_id: user.id,
+                title: `ทริป${destination || "ท่องเที่ยว"}`,
+                destination_type: "city",
+                destination,
+                duration_days: days,
+                activities: [],
+                start_date: checkIn || null,
+                end_date: checkOut || null,
+                status: "planned",
+              });
+              if (newTrip) setCurrentTrip(newTrip);
+            }
+            setConfirmed(true);
+            setSubmitting(false);
+          }}
+          disabled={submitting}
+          className="w-full py-4 rounded-2xl bg-brand hover:bg-brand-dark transition-colors text-white font-bold text-lg disabled:opacity-50"
         >
-          ยืนยันการจอง
+          {submitting ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-5 h-5 animate-spin" />กำลังบันทึก...</span> : "ยืนยันการจอง"}
         </button>
       </main>
     </div>

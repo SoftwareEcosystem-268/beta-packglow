@@ -24,6 +24,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
+import uuid
 
 from app.database import get_db
 from app.models.trip import Trip
@@ -72,10 +73,14 @@ async def create_trip(trip_data: TripCreate, db: AsyncSession = Depends(get_db))
     # สร้าง trip ใหม่
     trip = Trip(
         user_id=trip_data.user_id,
+        title=trip_data.title,
         destination_type=trip_data.destination_type,
+        destination=trip_data.destination,
         duration_days=trip_data.duration_days,
         activities=trip_data.activities or [],
         start_date=trip_data.start_date,
+        end_date=trip_data.end_date,
+        status=trip_data.status,
     )
     db.add(trip)
     await db.commit()
@@ -88,7 +93,7 @@ async def create_trip(trip_data: TripCreate, db: AsyncSession = Depends(get_db))
 # =============================================================================
 @router.get("/", response_model=List[TripResponse])
 async def get_trips(
-    user_id: Optional[str] = Query(None, description="Filter trips โดย user ID"),
+    user_id: Optional[uuid.UUID] = Query(None, description="Filter trips โดย user ID"),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -127,7 +132,7 @@ async def get_trips(
 # GET /trips/{trip_id} - ดู trip ตาม ID
 # =============================================================================
 @router.get("/{trip_id}", response_model=TripResponse)
-async def get_trip(trip_id: str, db: AsyncSession = Depends(get_db)):
+async def get_trip(trip_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """
     ดึง trip ตาม ID
 
@@ -160,7 +165,7 @@ async def get_trip(trip_id: str, db: AsyncSession = Depends(get_db)):
 # =============================================================================
 @router.patch("/{trip_id}", response_model=TripResponse)
 async def update_trip(
-    trip_id: str,
+    trip_id: uuid.UUID,
     trip_data: TripUpdate,
     db: AsyncSession = Depends(get_db)
 ):
@@ -207,7 +212,7 @@ async def update_trip(
 # DELETE /trips/{trip_id} - ลบ trip
 # =============================================================================
 @router.delete("/{trip_id}", status_code=204)
-async def delete_trip(trip_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_trip(trip_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """
     ลบ trip ตาม ID
 

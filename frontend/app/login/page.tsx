@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -14,10 +15,10 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const err = login(email, password);
+    const err = await login(email, password);
     if (err) {
       setError(err);
     } else {
@@ -28,16 +29,17 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen relative flex items-center justify-center">
       {/* Full-page Background Image */}
-      <img
+      <Image
         src="/asset/login-bg.jpg"
         alt="Travel scenic"
-        className="absolute inset-0 w-full h-full object-cover"
+        fill
+        className="object-cover"
       />
       <div className="absolute inset-0 bg-black/50" />
 
       {/* Logo top-left */}
       <Link href="/" className="absolute top-6 left-8 z-20 flex items-center gap-2">
-        <img src="/asset/logo-web.svg" alt="PackGlow" className="w-8 h-8" />
+        <Image src="/asset/logo-web.svg" alt="PackGlow" className="w-8 h-8" width={32} height={32} />
         <span className="text-2xl font-bold text-white">PackGlow</span>
       </Link>
 
