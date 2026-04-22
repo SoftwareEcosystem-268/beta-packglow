@@ -39,6 +39,9 @@ export const createTrip = (data: Omit<Trip, "id" | "created_at" | "updated_at">)
 export const deleteTrip = (tripId: string) =>
   fetch(`${API_URL}/trips/${tripId}`, { method: "DELETE" });
 
+export const updateTrip = (tripId: string, data: Partial<Pick<Trip, "title" | "destination_type" | "destination" | "duration_days" | "activities" | "start_date" | "end_date" | "status">>) =>
+  apiFetch<Trip>(`/trips/${tripId}`, { method: "PATCH", body: JSON.stringify(data) });
+
 // =============================================================================
 // Packing Items
 // =============================================================================

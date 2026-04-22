@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      {
+        protocol: "https",
+        hostname: "s.isanook.com",
+      },
+      {
+        protocol: "https",
+        hostname: "plus.unsplash.com",
+      },
     ],
   },
 };

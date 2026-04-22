@@ -13,95 +13,91 @@ cursor = conn.cursor()
 cursor.execute("DELETE FROM outfit_suggestions")
 
 outfits = [
-    # ===== Beach - Day (female) =====
+    # ===== Beach - Day =====
     {
         "destination_type": "beach",
         "occasion": "day",
         "weather_condition": "hot",
         "description": "ชุดสั้นสีพาสเทล + หมวกบักเก็ต + แว่นกันแดด พร้อมลุยทะเลตลอดวัน",
-        "image_url": "https://s.isanook.com/wo/0/ud/32/163817/h2.jpg?ip/resize/w728/q80/jpg",
         "style_tags": ["casual", "minimal"],
         "gender": "female",
         "season": "summer",
     },
-    # ===== Beach - Night (unisex) =====
+    # ===== Beach - Night =====
     {
         "destination_type": "beach",
         "occasion": "night",
         "weather_condition": "hot",
         "description": "เสื้อเชิ้ตลายทาง + กางเกงขาสั้นสีเข้ม ดูดีแต่สบายสำหรับบาร์ริมทะเล",
-        "image_url": "https://images.unsplash.com/photo-1623886534930-0a71b4068977?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "image_url": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&h=750&fit=crop",
         "style_tags": ["casual", "elegant"],
         "gender": "unisex",
         "season": "summer",
     },
-    # ===== Mountain - Day (unisex) =====
+    # ===== Mountain - Day =====
     {
         "destination_type": "mountain",
         "occasion": "day",
         "weather_condition": "cold",
         "description": "แจ็คเก็ตกันหนาว + เสื้อฮู้ด + กางเกงขายาวเดินป่า พร้อมลุยธรรมชาติ",
-        "image_url": "https://plus.unsplash.com/premium_photo-1676648534980-773dd0384852?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "image_url": "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=600&h=750&fit=crop",
         "style_tags": ["sporty", "outdoor"],
         "gender": "unisex",
         "season": "winter",
     },
-    # ===== Mountain - Day (male) =====
     {
         "destination_type": "mountain",
         "occasion": "day",
         "weather_condition": "cold",
         "description": "เสื้อกันหนาวผ้าฟลีซ + กางเกงเดินป่า + รองเท้าเดินป่า เหมาะกับเทร็คกิ้ง",
-        "image_url": "https://images.unsplash.com/photo-1656983532295-43a9aa707213?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "image_url": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600&h=750&fit=crop",
         "style_tags": ["sporty", "outdoor"],
         "gender": "male",
         "season": "all_season",
     },
-    # ===== City - Day (unisex) =====
+    # ===== City - Day =====
     {
         "destination_type": "city",
         "occasion": "day",
         "weather_condition": "hot",
         "description": "เสื้อยืดคอกลม + กางเกง chinos + รองเท้าผ้าใบ สไตล์เที่ยวเมืองสบายๆ",
-        "image_url": "https://images.unsplash.com/photo-1695234554364-e3944d2c09f8?q=80&w=1025&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "image_url": "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&h=750&fit=crop",
         "style_tags": ["casual", "minimal"],
         "gender": "unisex",
         "season": "all_season",
     },
-    # ===== City - Night (unisex) =====
+    # ===== City - Night =====
     {
         "destination_type": "city",
         "occasion": "night",
         "weather_condition": "hot",
         "description": "เสื้อเชิ้ตสีเข้ม + กางเกงตรง + รองเท้าหนัง ดูดีสำหรับดินเนอร์",
-        "image_url": "https://images.unsplash.com/photo-1645466478772-99f652533d44?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "image_url": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=750&fit=crop",
         "style_tags": ["elegant", "minimal"],
         "gender": "unisex",
         "season": "all_season",
     },
-    # ===== City - Night (female) =====
     {
         "destination_type": "city",
         "occasion": "night",
         "weather_condition": "cold",
         "description": "เดรสสีเข้ม + เสื้อคลุม + ส้นสูง หรูหราสำหรับงานสังสรรค์ยามค่ำคืน",
-        "image_url": "https://images.unsplash.com/photo-1643103036725-99a45a139b87?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "image_url": "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600&h=750&fit=crop",
         "style_tags": ["elegant", "night"],
         "gender": "female",
         "season": "winter",
     },
-    # ===== Ceremony - Formal (male) =====
+    # ===== Ceremony =====
     {
         "destination_type": "ceremony",
         "occasion": "formal",
         "weather_condition": "hot",
         "description": "ชุดสูทสีเบจ + เนคไท + รองเท้าหนัง สุภาพเหมาะกับงานพิธี",
-        "image_url": "https://images.unsplash.com/photo-1709428590733-164d1334618f?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "image_url": "https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?w=600&h=750&fit=crop",
         "style_tags": ["formal", "elegant"],
         "gender": "male",
         "season": "all_season",
     },
-    # ===== Ceremony - Formal (female) =====
     {
         "destination_type": "ceremony",
         "occasion": "formal",
@@ -112,18 +108,18 @@ outfits = [
         "gender": "female",
         "season": "all_season",
     },
-    # ===== Abroad - Day (unisex) =====
+    # ===== Abroad - Day =====
     {
         "destination_type": "abroad",
         "occasion": "day",
         "weather_condition": "variable",
         "description": "เสื้อคาร์ดิแกน + เสื้อยืด + กางเกงยีนส์ เลเยอร์สบายปรับอากาศได้",
-        "image_url": "https://images.unsplash.com/photo-1559014305-32424a2b223a?q=80&w=681&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "image_url": "https://images.unsplash.com/photo-1475180098004-ca77a66827be?w=600&h=750&fit=crop",
         "style_tags": ["casual", "layering"],
         "gender": "unisex",
         "season": "all_season",
     },
-    # ===== Abroad - Night (unisex) =====
+    # ===== Abroad - Night =====
     {
         "destination_type": "abroad",
         "occasion": "night",
@@ -134,18 +130,18 @@ outfits = [
         "gender": "unisex",
         "season": "winter",
     },
-    # ===== Beach - Casual (unisex) =====
+    # ===== Beach - Casual =====
     {
         "destination_type": "beach",
         "occasion": "casual",
         "weather_condition": "hot",
         "description": "เสื้อคลุมผ้าบาง + ชุดว่ายน้ำ + กางเกงขาสั้น พร้อมลงเล่นน้ำ",
-        "image_url": "https://plus.unsplash.com/premium_photo-1684917942036-62b4089c0c6c?q=80&w=1169&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "image_url": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=750&fit=crop",
         "style_tags": ["casual", "beach"],
         "gender": "unisex",
         "season": "summer",
     },
-    # ===== City - Casual (male) =====
+    # ===== City - Casual =====
     {
         "destination_type": "city",
         "occasion": "casual",

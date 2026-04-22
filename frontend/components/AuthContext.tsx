@@ -26,6 +26,7 @@ let readVersion = -1;
 
 let userListeners: (() => void)[] = [];
 
+
 function subscribeUser(callback: () => void) {
   userListeners = [...userListeners, callback];
   return () => {

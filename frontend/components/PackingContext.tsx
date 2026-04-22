@@ -20,6 +20,7 @@ import {
   createTemplate,
   deleteTemplate,
   generatePackingList,
+  createTrip,
 } from "@/lib/api";
 
 const categoryMap: Record<string, string> = {
@@ -90,7 +91,7 @@ function groupChecklistByCategory(
 
 export function PackingProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { currentTrip, createNewTrip, setCurrentTrip } = useTrips();
+  const { currentTrip, setCurrentTrip } = useTrips();
   const [catalogLookup, setCatalogLookup] = useState<Map<string, PackingItemType>>(new Map());
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -106,6 +107,24 @@ export function PackingProvider({ children }: { children: ReactNode }) {
   currentTripRef.current = currentTrip;
   const userIdRef = useRef(user?.id);
   userIdRef.current = user?.id;
+
+  const ensureTrip = useCallback(async () => {
+    if (currentTripRef.current) return currentTripRef.current;
+    const uid = userIdRef.current || null;
+    const trip = await createTrip({
+      user_id: uid || "guest",
+      title: "Packing List",
+      destination_type: "city",
+      destination: null,
+      duration_days: 3,
+      activities: [],
+      start_date: null,
+      end_date: null,
+      status: "planned",
+    });
+    setCurrentTrip(trip);
+    return trip;
+  }, [setCurrentTrip]);
 
   // Whether currentTrip has been hydrated from localStorage
   const [tripHydrated, setTripHydrated] = useState(() => {
@@ -170,38 +189,9 @@ export function PackingProvider({ children }: { children: ReactNode }) {
 
   const addCustomItemToTrip = useCallback(
     async (categoryId: string, name: string): Promise<boolean> => {
-      let trip = currentTripRef.current;
-
-      if (!trip) {
-        console.warn("[PackingContext] No current trip — auto-creating one");
-        try {
-          const newTrip = await createNewTrip({
-            user_id: userIdRef.current || "",
-            title: "ทริปใหม่",
-            destination_type: "city",
-            destination: "",
-            duration_days: 1,
-            activities: [],
-            start_date: null,
-            end_date: null,
-            status: "planned",
-          });
-          if (newTrip) {
-            setCurrentTrip(newTrip);
-            currentTripRef.current = newTrip;
-            trip = newTrip;
-            console.info("[PackingContext] Auto-created trip:", newTrip.id);
-          } else {
-            console.error("[PackingContext] Auto-create trip returned null");
-            return false;
-          }
-        } catch (e) {
-          console.error("[PackingContext] Auto-create trip failed:", e);
-          return false;
-        }
-      }
-
       try {
+        const trip = await ensureTrip();
+
         const packingItem = await createPackingItem({
           name,
           category: categoryId,
@@ -231,7 +221,7 @@ export function PackingProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-    [createNewTrip, setCurrentTrip]
+    [ensureTrip]
   );
 
   const removeChecklistItem = useCallback(async (checklistId: string) => {
@@ -332,36 +322,10 @@ export function PackingProvider({ children }: { children: ReactNode }) {
   }, [checklistItems]);
 
   const generateSmartList = useCallback(async (): Promise<PackingAssistantResponse | null> => {
-    let trip = currentTripRef.current;
-
-    if (!trip) {
-      try {
-        const newTrip = await createNewTrip({
-          user_id: userIdRef.current || "",
-          title: "ทริปใหม่",
-          destination_type: "city",
-          destination: "",
-          duration_days: 1,
-          activities: [],
-          start_date: null,
-          end_date: null,
-          status: "planned",
-        });
-        if (newTrip) {
-          setCurrentTrip(newTrip);
-          currentTripRef.current = newTrip;
-          trip = newTrip;
-        } else {
-          return null;
-        }
-      } catch (e) {
-        console.error("[PackingContext] generateSmartList: auto-create trip failed:", e);
-        return null;
-      }
-    }
-
     setGenerating(true);
     try {
+      const trip = await ensureTrip();
+
       const tier = typeof window !== "undefined"
         ? (localStorage.getItem("pg_user_tier") as "free" | "pro") || "free"
         : "free";
@@ -373,7 +337,6 @@ export function PackingProvider({ children }: { children: ReactNode }) {
       });
       setGeneratedResult(result);
 
-      // Populate checklist items from the result
       const existingNames = new Set<string>();
       checklistItems.forEach((ci) => {
         const name = ci.custom_item_name || catalogLookup.get(ci.item_id || "")?.name || "";
@@ -395,7 +358,7 @@ export function PackingProvider({ children }: { children: ReactNode }) {
     } finally {
       setGenerating(false);
     }
-  }, [checklistItems, catalogLookup, addCustomItemToTrip, createNewTrip, setCurrentTrip]);
+  }, [checklistItems, catalogLookup, addCustomItemToTrip, ensureTrip]);
 
   return (
     <PackingContext.Provider
