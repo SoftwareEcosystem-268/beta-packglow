@@ -140,7 +140,7 @@ outfits = [
         "occasion": "casual",
         "weather_condition": "hot",
         "description": "เสื้อคลุมผ้าบาง + ชุดว่ายน้ำ + กางเกงขาสั้น พร้อมลงเล่นน้ำ",
-        "image_url": "https://plus.unsplash.com/premium_photo-1684917942036-62b4089c0c6c?q=80&w=1169&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "image_url": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=750&fit=crop",
         "style_tags": ["casual", "beach"],
         "gender": "unisex",
         "season": "summer",

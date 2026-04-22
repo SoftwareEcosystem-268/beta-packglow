@@ -21,9 +21,11 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 // Cached snapshot to avoid infinite re-renders with useSyncExternalStore
 let cachedUser: User | null = null;
-let cachedRaw: string | null = null;
+let cacheVersion = 0;
+let readVersion = -1;
 
 let userListeners: (() => void)[] = [];
+
 
 function subscribeUser(callback: () => void) {
   userListeners = [...userListeners, callback];
@@ -33,14 +35,13 @@ function subscribeUser(callback: () => void) {
 }
 
 function getUserSnapshot(): User | null {
+  if (cacheVersion === readVersion) return cachedUser;
+  readVersion = cacheVersion;
   try {
     const raw = localStorage.getItem("pg_current_user");
-    if (raw === cachedRaw) return cachedUser;
-    cachedRaw = raw;
     cachedUser = raw ? JSON.parse(raw) : null;
     return cachedUser;
   } catch {
-    cachedRaw = null;
     cachedUser = null;
     return null;
   }
@@ -49,7 +50,7 @@ function getUserSnapshot(): User | null {
 const getUserServerSnapshot = (): User | null => null;
 
 function emitUserChange() {
-  cachedRaw = null; // invalidate cache
+  cacheVersion++;
   for (const l of userListeners) l();
 }
 

@@ -2,9 +2,11 @@
 
 import { usePacking } from "@/components/PackingContext";
 import { useOutfits } from "@/components/OutfitContext";
+import { useTrips } from "@/components/TripContext";
 import {
   ArrowRight, Calendar, MapPin, ChevronRight,
   Check, X, Plus, Star, Sparkles, User, Heart, Loader2, FolderOpen, Crown,
+  AlertTriangle, CheckCircle2, PlayCircle, XCircle, Hourglass, Luggage, Clock, Tag,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -13,6 +15,8 @@ import Image from "next/image";
 import { useAuth } from "@/components/AuthContext";
 import { Button } from "@/components/ui/button";
 import DestinationPackingModal, { type DestinationData } from "@/components/DestinationPackingModal";
+import OutfitDetailModal from "@/components/OutfitDetailModal";
+import ProUpgradePopup from "@/components/ProUpgradePopup";
 
 /* ─── Destinations Data ─── */
 const destCategories = [
@@ -52,6 +56,20 @@ const outfitFilters = [
   { id: "formal", label: "ทางการ" },
   { id: "casual", label: "ลำลอง" },
 ];
+
+const outfitStyleNameMap: Record<string, string> = {
+  casual: "Smart Casual",
+  minimal: "Minimal Street",
+  elegant: "Modern Elegant",
+  formal: "Classic Formal",
+  sporty: "Sporty Chic",
+  outdoor: "Outdoor Explorer",
+  street: "Street Style",
+  vintage: "Vintage Classic",
+  layering: "Layered Look",
+  beach: "Beach Vibes",
+  night: "Night Out",
+};
 
 const outfitDestFilters = [
   { id: "all", label: "ทั้งหมด" },
@@ -97,6 +115,64 @@ function getCategoryStats(categoryId: string, items: Record<string, { is_packed:
   return { completed: ci.filter(i => i.is_packed).length, total: ci.length };
 }
 
+/* ─── Booking Status Config ─── */
+type UIStatus = "pending" | "ongoing" | "completed" | "cancelled";
+
+const BOOKING_STATUS: Record<UIStatus, {
+  label: string;
+  icon: typeof CheckCircle2;
+  bg: string;
+  text: string;
+  border: string;
+  dot: string;
+  bar: string;
+}> = {
+  pending:   { label: "รอดำเนินการ", icon: Hourglass,     bg: "bg-amber-50/60",   text: "text-amber-800/70",   border: "border-amber-200/50",   dot: "bg-amber-300",   bar: "bg-amber-300/60" },
+  ongoing:   { label: "กำลังใช้งาน", icon: PlayCircle,    bg: "bg-teal-50/60",    text: "text-teal-800/70",    border: "border-teal-200/50",    dot: "bg-teal-300",    bar: "bg-teal-300/60" },
+  completed: { label: "เสร็จสิ้น",    icon: CheckCircle2,  bg: "bg-stone-50/60",   text: "text-stone-500",      border: "border-stone-200/50",   dot: "bg-stone-300",   bar: "bg-stone-300/60" },
+  cancelled: { label: "ยกเลิก",      icon: XCircle,       bg: "bg-rose-50/60",    text: "text-rose-700/60",    border: "border-rose-200/50",    dot: "bg-rose-300",    bar: "bg-rose-300/60" },
+};
+
+const bookingFilters = [
+  { id: "all", label: "ทั้งหมด" },
+  { id: "pending", label: "รอดำเนินการ" },
+  { id: "ongoing", label: "กำลังใช้งาน" },
+  { id: "completed", label: "เสร็จสิ้น" },
+  { id: "cancelled", label: "ยกเลิก" },
+];
+
+const destTypeLabels: Record<string, string> = {
+  beach: "ชายหาด", mountain: "ภูเขา", city: "เมือง", abroad: "ต่างประเทศ", ceremony: "พิธีการ",
+};
+
+function computeBookingStatus(trip: { status: string; start_date: string | null; end_date: string | null }): UIStatus {
+  if (trip.status === "cancelled") return "cancelled";
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const start = trip.start_date ? new Date(trip.start_date) : null;
+  const end = trip.end_date ? new Date(trip.end_date) : null;
+  if (start) start.setHours(0, 0, 0, 0);
+  if (end) end.setHours(0, 0, 0, 0);
+  if (end && now > end) return "completed";
+  if (start && end && now >= start && now <= end) return "ongoing";
+  return "pending";
+}
+
+function fmtDate(d: string | null) {
+  if (!d) return "-";
+  return new Date(d).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function fmtDateRange(start: string | null, end: string | null) {
+  if (!start && !end) return "ยังไม่กำหนดวัน";
+  return `${fmtDate(start)} — ${fmtDate(end)}`;
+}
+
+function daysUntil(dateStr: string | null): number | null {
+  if (!dateStr) return null;
+  return Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
 /* ─── Main Page ─── */
 export default function Home() {
   const router = useRouter();
@@ -105,12 +181,11 @@ export default function Home() {
     templates, refreshTemplates, saveAsTemplate, loadTemplate, removeTemplate,
     generatedResult, generating, generateSmartList } = usePacking();
   const { outfits: apiOutfits, savedOutfits, loading: outfitsLoading, toggleSave: toggleOutfitSave, isSaved: isOutfitSaved } = useOutfits();
+  const { trips, currentTrip, cancelTrip } = useTrips();
   const { user, logout } = useAuth();
-  const [userTier, setUserTier] = useState<"free" | "pro">(() => {
-    if (typeof window === 'undefined') return "free";
-    return (localStorage.getItem("pg_user_tier") as "free" | "pro") || "free";
-  });
+  const [userTier, setUserTier] = useState<"free" | "pro">("free");
   useEffect(() => {
+    setUserTier((localStorage.getItem("pg_user_tier") as "free" | "pro") || "free");
     const onStorage = () => {
       setUserTier((localStorage.getItem("pg_user_tier") as "free" | "pro") || "free");
     };
@@ -126,25 +201,13 @@ export default function Home() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemDesc, setNewItemDesc] = useState("");
+  const [addCategory, setAddCategory] = useState("clothes");
+  const [adding, setAdding] = useState(false);
   const [outfitFilter, setOutfitFilter] = useState("all");
   const [outfitDestFilter, setOutfitDestFilter] = useState("all");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const destScrollRef = useRef<HTMLDivElement>(null);
-
-  // AI Stylist state
-  const [stylistOpen, setStylistOpen] = useState(false);
-  const [stylistData, setStylistData] = useState({
-    location: "",
-    weather: "hot",
-    days: "3",
-    activities: "",
-    style: "casual",
-    gender: "unisex",
-  });
-  const [stylistResult, setStylistResult] = useState<string | null>(null);
-  const [stylistImages, setStylistImages] = useState<{day: string; night: string; activity: string} | null>(null);
-  const [stylistLoading, setStylistLoading] = useState(false);
 
   // Save/Template state
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -154,6 +217,15 @@ export default function Home() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<DestinationData | null>(null);
   const [showPackingModal, setShowPackingModal] = useState(false);
+
+  // Booking state
+  const [bookingFilter, setBookingFilter] = useState("all");
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; title: string } | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
+  // Outfit modal state
+  const [selectedOutfit, setSelectedOutfit] = useState<typeof apiOutfits[number] | null>(null);
+  const [showProPopup, setShowProPopup] = useState(false);
 
   useEffect(() => {
     if (!toast) return;
@@ -195,96 +267,6 @@ export default function Home() {
     showToast(ok ? `โหลด "${tpl.name}" สำเร็จ` : "โหลดไม่สำเร็จ", ok ? "success" : "error");
   };
 
-  const generateOutfitRecommendation = () => {
-    if (!stylistData.location.trim()) return;
-    setStylistLoading(true);
-    setStylistResult(null);
-    setStylistImages(null);
-    setTimeout(() => {
-      const weatherText: Record<string, string> = { hot: "ร้อน", cold: "หนาว", rain: "ฝน", variable: "แปรปรวน" };
-      const styleText: Record<string, string> = { casual: "ลำลอง", minimal: "มินิมอล", street: "สตรีท", elegant: "หรูหรา", sporty: "สปอร์ต" };
-      const genderText: Record<string, string> = { unisex: "", male: "ผู้ชาย", female: "ผู้หญิง" };
-
-      // Set outfit images based on weather and style
-      const outfitImages = {
-        day: stylistData.weather === "cold"
-          ? "https://images.unsplash.com/photo-1516762689617-e1cffcef479d?w=400&h=500&fit=crop"
-          : stylistData.weather === "rain"
-          ? "https://images.unsplash.com/photo-1534309466160-70b22cc6252c?w=400&h=500&fit=crop"
-          : "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=500&fit=crop",
-        night: stylistData.style === "elegant"
-          ? "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=500&fit=crop"
-          : stylistData.style === "street"
-          ? "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&h=500&fit=crop"
-          : "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400&h=500&fit=crop",
-        activity: stylistData.activities.toLowerCase().includes("ชายหาด") || stylistData.activities.toLowerCase().includes("beach")
-          ? "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=500&fit=crop"
-          : stylistData.activities.toLowerCase().includes("เดินป่า") || stylistData.activities.toLowerCase().includes("hiking")
-          ? "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=500&fit=crop"
-          : "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400&h=500&fit=crop",
-      };
-      setStylistImages(outfitImages);
-
-      const result = `## 🌟 แนะนำชุดสำหรับทริป${stylistData.location} (${stylistData.days} วัน)
-
-**สภาพอากาศ:** ${weatherText[stylistData.weather]} | **สไตล์:** ${styleText[stylistData.style]} ${genderText[stylistData.gender] ? `(${genderText[stylistData.gender]})` : ""}
-
----
-
-### ☀️ ชุดกลางวัน - เที่ยวชมเมือง
-
-**Look 1: Casual Explorer**
-- **เสื้อ:** เสื้อยืดคอกลมสีขาว/เบจ ผ้าฝ้ายนุ่ม ระบายอากาศดี
-- **กางเกง:** กางเกงยีนส์ตรงหรือ chinos สีครีม/น้ำเงินเข้ม
-- **รองเท้า:** รองเท้าผ้าใบสีขาว สวมใส่ง่าย เดินสบาย
-- **แอ็กเซสซอรี่:** แว่นกันแดด + กระเป๋าเป้ขนาดเล็ก
-
-> 💡 **เหตุผล:** เหมาะกับการเดินเที่ยวตลอดวัน ระบายอากาศดี ดูเป็นธรรมชาติแต่ยังดีไซน์อยู่
-
-**Look 2: Breezy Chic**
-- **เสื้อ:** เสื้อเชิ้ตลายทางบางๆ หรือเสื้อคาร์ดิแกนเบาๆ
-- **กางเกง:** กางเกงขาสั้นทรง A-line หรือขายาวตรง
-- **รองเท้า:** รองเท้าแตะสไตล์มินิมอล หรือ loafers
-- **แอ็กเซสซอรี่:** หมวกบักเก็ต + ผ้าพันคอเบาๆ
-
----
-
-### 🌙 ชุดกลางคืน - ดินเนอร์ / บาร์
-
-**Look 1: Evening Elegance**
-- **เสื้อ:** เสื้อเชิ้ตสีดำ/เข้ม หรือเดรสแบบ simple
-- **กางเกง:** กางเกงตรงสีดำ ทรงพอดีตัว
-- **รองเท้า:** รองเท้าทำมือหรือ heels กึ่งทางการ
-- **แอ็กเซสซอรี่:** นาฬิกาเรียบหรู + กระเป๋าครอสบอดี้
-
-> 💡 **เหตุผล:** ดูหรูหราแต่ไม่เวอร์ เหมาะกับร้านอาหารและบาร์
-
----
-
-### 🏖️ ชุดพิเศษ - ${stylistData.activities || "กิจกรรม"}
-
-- **ชุดว่ายน้ำ:** บิกินี่หรือชุดว่ายน้ำสีโทนธรรมชาติ
-- **คลุม:** เสื้อคลุมผ้าบาง หรือเสื้อเชิ้ตโอเวอร์ไซส์
-- **กางเกง:** กางเกงขาสั้นทรงสูง
-- **รองเท้า:** แตะยางสไตล์ retro
-
----
-
-### 🔄 Mix & Match Tips
-
-1. **เลือกโทนสีเบสิก:** ขาว, ดำ, เบจ, น้ำเงินเข้ม — มิกซ์กันง่าย
-2. **เน้นผ้าระบายอากาศ:** ${weatherText[stylistData.weather] === "ร้อน" ? "เลือกผ้าฝ้าย/ลินิน" : weatherText[stylistData.weather] === "หนาว" ? "เพิ่มเสื้อกันหนาวเบาๆ" : "พกเสื้อคลุมกันฝนเบาๆ"}
-3. **รองเท้า 2 คู่พอ:** ผ้าใบ + รองเท้าสำรอง (แตะหรือทำมือ)
-4. **แอ็กเซสซอรี่มินิมอล:** แว่นกันแดด + นาฬิกา + กระเป๋าเล็ก
-
----
-
-✨ **PackGlow AI Stylist** หวังว่าคุณจะสนุกกับทริปนี้นะคะ!`;
-      setStylistResult(result);
-      setStylistLoading(false);
-    }, 1500);
-  };
-
   useEffect(() => {
     const h = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); };
     document.addEventListener("mousedown", h);
@@ -323,11 +305,15 @@ export default function Home() {
   const [addError, setAddError] = useState("");
 
   const addItem = async () => {
-    if (!newItemName.trim() || activePackCat === "all") return;
+    const category = activePackCat === "all" ? addCategory : activePackCat;
+    if (!newItemName.trim()) return;
     setAddError("");
-    const ok = await addCustomItemToTrip(activePackCat, newItemName.trim());
+    setAdding(true);
+    const ok = await addCustomItemToTrip(category, newItemName.trim());
+    setAdding(false);
     if (ok) {
       setNewItemName(""); setNewItemDesc(""); setShowAddForm(false);
+      showToast(`เพิ่ม "${newItemName.trim()}" สำเร็จ`);
     } else {
       setAddError("ไม่สามารถเพิ่มรายการได้ กรุณาลองใหม่");
     }
@@ -353,37 +339,38 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#F5F3EF] overflow-x-hidden">
       {/* ─── NAVBAR ─── */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 md:px-16 lg:px-24 py-5 bg-white/80 backdrop-blur-md shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-8 lg:px-24 py-3 md:py-5 bg-white/80 backdrop-blur-md shadow-sm">
         <button onClick={() => scrollTo("hero")} className="flex items-center gap-2">
-          <Image src="/asset/logo-web.svg" alt="PackGlow" width={32} height={32} className="w-8 h-8 brightness-0" />
-          <span className="text-2xl font-bold text-gray-900">PackGlow</span>
+          <Image src="/asset/logo-web.svg" alt="PackGlow" width={32} height={32} className="w-7 h-7 md:w-8 md:h-8 brightness-0" />
+          <span className="text-lg md:text-2xl font-bold text-gray-900">PackGlow</span>
         </button>
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden lg:flex items-center gap-6">
           {[
             { id: "hero", label: "Home" },
             { id: "destinations", label: "Destinations" },
             { id: "packing", label: "Packing" },
             { id: "outfits", label: "Outfits" },
+            { id: "bookings", label: "Bookings" },
             { id: "pricing", label: "Pricing" },
           ].map(s => (
-            <button key={s.id} onClick={() => scrollTo(s.id)} className="text-gray-700 font-medium hover:text-brand transition-colors">
+            <button key={s.id} onClick={() => scrollTo(s.id)} className="text-gray-700 font-medium hover:text-brand transition-colors text-sm">
               {s.label}
             </button>
           ))}
         </nav>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {user ? (
             <div className="relative" ref={menuRef}>
-              <button onClick={() => setMenuOpen(!menuOpen)} className="relative w-9 h-9 rounded-full bg-brand flex items-center justify-center hover:bg-brand-dark transition-colors">
-                <User className="w-5 h-5 text-white" />
+              <button onClick={() => setMenuOpen(!menuOpen)} className="relative w-8 h-8 md:w-9 md:h-9 rounded-full bg-brand flex items-center justify-center hover:bg-brand-dark transition-colors">
+                <User className="w-4 h-4 md:w-5 md:h-5 text-white" />
                 {isPro ? (
-                  <Crown className="absolute -top-1.5 -right-1.5 w-4 h-4 text-yellow-400 fill-yellow-400 drop-shadow-sm" />
+                  <Crown className="absolute -top-1 -right-1 md:-top-1.5 md:-right-1.5 w-3 h-3 md:w-4 md:h-4 text-yellow-400 fill-yellow-400 drop-shadow-sm" />
                 ) : (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-gray-300 border-2 border-white/80" />
+                  <span className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-gray-300 border-2 border-white/80" />
                 )}
               </button>
               {menuOpen && (
-                <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                <div className="absolute right-0 top-10 md:top-12 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
                   <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isPro ? "bg-brand" : "bg-gray-300"}`}>
                       {isPro ? <Crown className="w-4 h-4 text-yellow-400 fill-yellow-400" /> : <User className="w-4 h-4 text-white" />}
@@ -393,6 +380,20 @@ export default function Home() {
                       <p className="text-xs text-gray-400 truncate">{user.email}</p>
                     </div>
                   </div>
+                  <div className="lg:hidden border-t border-gray-100 py-1">
+                    {[
+                      { id: "hero", label: "Home" },
+                      { id: "destinations", label: "Destinations" },
+                      { id: "packing", label: "Packing" },
+                      { id: "outfits", label: "Outfits" },
+                      { id: "bookings", label: "Bookings" },
+                      { id: "pricing", label: "Pricing" },
+                    ].map(s => (
+                      <button key={s.id} onClick={() => { scrollTo(s.id); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
                   <button onClick={() => { logout(); router.push("/"); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">
                     ออกจากระบบ
                   </button>
@@ -401,8 +402,8 @@ export default function Home() {
             </div>
           ) : (
             <>
-              <Link href="/login" className="text-gray-700 font-medium hover:text-brand transition-colors">Login</Link>
-              <Link href="/signup"><Button className="bg-brand hover:bg-brand-dark text-white px-6 py-2 rounded-md font-medium">Sign Up</Button></Link>
+              <Link href="/login" className="text-gray-700 font-medium hover:text-brand transition-colors text-sm hidden sm:inline-block">Login</Link>
+              <Link href="/signup"><Button className="bg-brand hover:bg-brand-dark text-white px-3 md:px-6 py-1.5 md:py-2 rounded-md font-medium text-sm">Sign Up</Button></Link>
             </>
           )}
         </div>
@@ -412,13 +413,44 @@ export default function Home() {
       <section id="hero" className="relative min-h-screen flex flex-col justify-center">
         <div className="absolute inset-0 bg-center bg-no-repeat" style={{ backgroundImage: `url('/asset/first-page.png')`, backgroundSize: 'cover' }} />
         <div className="absolute inset-0 bg-black/50" />
-        <div className="relative z-10 px-8 md:px-16 lg:px-24 pt-28">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-light tracking-tight text-white mb-6 leading-tight">
+        <div className="relative z-10 px-4 md:px-8 lg:px-24 pt-24 md:pt-28">
+          <h1 className="text-3xl md:text-5xl lg:text-7xl font-light tracking-tight text-white mb-4 md:mb-6 leading-tight">
             Pack your bags.<br />Get dressed perfectly.<br /><span className="text-white">Look amazing on every trip.</span>
           </h1>
-          <p className="text-xl md:text-2xl text-white/80 max-w-xl">The best travel for your journey begins now</p>
-          <div className="mt-20 w-full md:w-2/3">
-            <div className="bg-white rounded-r-2xl shadow-2xl flex items-stretch pl-8">
+          <p className="text-base md:text-xl lg:text-2xl text-white/80 max-w-xl">The best travel for your journey begins now</p>
+          <div className="mt-8 md:mt-20 w-full md:w-2/3">
+            {/* Mobile: stacked cards */}
+            <div className="md:hidden bg-white rounded-2xl shadow-2xl p-4 space-y-4">
+              <div>
+                <label className="text-gray-700 text-[10px] font-bold tracking-widest mb-1.5 block">DESTINATION</label>
+                <input type="text" value={destination} onChange={e => setDestination(e.target.value)} className="text-gray-800 font-medium text-sm bg-transparent outline-none w-full border-b border-gray-300 pb-1" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-gray-700 text-[10px] font-bold tracking-widest mb-1.5 block">CHECK-IN</label>
+                  <div className="relative">
+                    <input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                    <span className="text-gray-800 font-medium text-xs">{formatDate(checkIn)}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-700 text-[10px] font-bold tracking-widest mb-1.5 block">CHECK OUT</label>
+                  <div className="relative">
+                    <input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                    <span className="text-gray-800 font-medium text-xs">{formatDate(checkOut)}</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="text-gray-700 text-[10px] font-bold tracking-widest mb-1.5 block">PERSON</label>
+                <input type="number" value={person} onChange={e => setPerson(e.target.value)} className="text-gray-800 font-medium text-sm bg-transparent outline-none w-full border-b border-gray-300 pb-1" min="1" />
+              </div>
+              <button onClick={() => router.push(`/booking?destination=${encodeURIComponent(destination)}&person=${person}&checkIn=${checkIn}&checkOut=${checkOut}`)} className="w-full py-3 bg-brand hover:bg-brand-dark transition-colors rounded-xl flex items-center justify-center gap-3 text-white font-bold">
+                Book Now <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+            {/* Desktop: horizontal bar */}
+            <div className="hidden md:flex bg-white rounded-r-2xl shadow-2xl items-stretch pl-8">
               <div className="px-6 py-5 flex flex-col justify-center">
                 <label className="text-gray-700 text-xs font-bold tracking-widest mb-2">DESTINATION</label>
                 <div className="border-b border-black pb-1">
@@ -457,25 +489,25 @@ export default function Home() {
       </section>
 
       {/* ─── DESTINATIONS ─── */}
-      <section id="destinations" className="px-6 md:px-16 lg:px-24 py-20 max-w-7xl mx-auto">
-        <div className="mb-6">
+      <section id="destinations" className="px-4 md:px-8 lg:px-24 py-10 md:py-20 max-w-7xl mx-auto">
+        <div className="mb-4 md:mb-6">
           <div className="inline-block">
-            <h2 className="text-4xl font-serif text-gray-900 mb-1.5">Destinations</h2>
+            <h2 className="text-3xl md:text-4xl font-serif text-gray-900 mb-1.5">Destinations</h2>
             <div className="w-full h-px bg-brand" />
           </div>
-          <p className="text-brand text-sm font-light mt-2">เลือกแล้วเราจะช่วยวางแผนทุกอย่างให้คุณ</p>
+          <p className="text-brand text-xs md:text-sm font-light mt-2">เลือกแล้วเราจะช่วยวางแผนทุกอย่างให้คุณ</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap mb-8">
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap mb-6 md:mb-8">
           {destCategories.map(c => (
-            <button key={c.id} onClick={() => setDestFilter(c.id)} className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${destFilter === c.id ? "bg-brand text-white" : "bg-gray-200 text-gray-600 hover:bg-gray-300"}`}>
+            <button key={c.id} onClick={() => setDestFilter(c.id)} className={`px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all ${destFilter === c.id ? "bg-brand text-white" : "bg-gray-200 text-gray-600 hover:bg-gray-300"}`}>
               {c.label}
             </button>
           ))}
         </div>
-        <div ref={destScrollRef} className="flex gap-6 overflow-hidden">
+        <div ref={destScrollRef} className="flex gap-4 md:gap-6 overflow-hidden">
           {[...filteredDest, ...filteredDest].map((d, i) => (
-            <div key={`${d.id}-${i}`} className="flex-shrink-0 w-72 group cursor-pointer" onClick={() => { setSelectedDestination(d); setShowPackingModal(true); }}>
-              <div className="relative h-80 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
+            <div key={`${d.id}-${i}`} className="flex-shrink-0 w-56 md:w-72 group cursor-pointer" onClick={() => { setSelectedDestination(d); setShowPackingModal(true); }}>
+              <div className="relative h-64 md:h-80 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
                 <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${d.image}')`, backgroundColor: "#e5e5e5" }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-5">
@@ -489,26 +521,47 @@ export default function Home() {
       </section>
 
       {/* ─── PACKING ─── */}
-      <section id="packing" className="bg-white py-20">
-        <div className="max-w-6xl mx-auto px-6 md:px-16">
-          <div className="flex items-center justify-between mb-8">
-            <button
-              onClick={generateSmartList}
-              disabled={generating}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Sparkles className="w-5 h-5" />
-              {generating ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> กำลังสร้างรายการ...</>
-              ) : (
-                "✨ สร้างรายการอัตโนมัติ"
-              )}
-            </button>
-            <h2 className="text-4xl font-normal text-black underline decoration-brand underline-offset-12">Packing</h2>
+      <section id="packing" className="bg-white py-10 md:py-20">
+        <div className="max-w-6xl mx-auto px-4 md:px-16">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={async () => {
+                  const result = await generateSmartList();
+                  if (result) {
+                    showToast(`สร้างรายการสำเร็จ — ${Object.values(result.packing_list).flat().length} รายการ`);
+                  } else {
+                    showToast("ไม่สามารถสร้างรายการอัตโนมัติได้", "error");
+                  }
+                }}
+                disabled={generating}
+                className="flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
+              >
+                <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
+                {generating ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> กำลังสร้าง...</>
+                ) : (
+                  "✨ สร้างรายการอัตโนมัติ"
+                )}
+              </button>
+            </div>
+            <h2 className="text-2xl md:text-4xl font-normal text-black underline decoration-brand underline-offset-8 md:underline-offset-12">Packing</h2>
           </div>
-          <div className="flex gap-8">
-            {/* Sidebar */}
-            <aside className="w-64 flex-shrink-0">
+          <div className="flex flex-col md:flex-row gap-4 md:gap-8">
+            {/* Mobile: horizontal scrollable tabs */}
+            <div className="md:hidden flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+              {packingCategories.map(c => {
+                const stats = getCategoryStats(c.id, packingItems);
+                return (
+                  <button key={c.id} onClick={() => setActivePackCat(c.id)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${activePackCat === c.id ? "bg-brand text-white" : "bg-gray-50 text-gray-700"}`}>
+                    <span>{c.label}</span>
+                    <span className={`text-[10px] ${activePackCat === c.id ? "text-white/80" : "text-gray-400"}`}>{stats.completed}/{stats.total}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Desktop: sidebar */}
+            <aside className="hidden md:block w-64 flex-shrink-0">
               <nav className="space-y-2">
                 {packingCategories.map(c => {
                   const stats = getCategoryStats(c.id, packingItems);
@@ -522,7 +575,7 @@ export default function Home() {
               </nav>
             </aside>
             {/* Main */}
-            <div className="flex-1 max-w-2xl">
+            <div className="flex-1 max-w-2xl min-w-0">
               {activePackCat === "all" ? (
                 <div className="space-y-8">
                   {packingCategories.filter(c => c.id !== "all").map(cat => (
@@ -545,6 +598,34 @@ export default function Home() {
                       </div>
                     </div>
                   ))}
+                  {totalItemCount === 0 && !showAddForm && currentTrip && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-400 mb-3">ยังไม่มีรายการ — กด &quot;✨ สร้างรายการอัตโนมัติ&quot; หรือเพิ่มเอง</p>
+                      <button onClick={() => setShowAddForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-dashed border-brand text-brand hover:bg-brand/5 transition-all">
+                        <Plus className="w-5 h-5" />
+                        <span className="font-medium">เพิ่มรายการ</span>
+                      </button>
+                    </div>
+                  )}
+                  {showAddForm && (
+                    <div className="p-4 rounded-xl border-2 border-brand bg-white space-y-3 max-w-md">
+                      <div className="flex gap-2">
+                        <select value={addCategory} onChange={e => setAddCategory(e.target.value)} className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-brand text-gray-900 bg-white">
+                          {packingCategories.filter(c => c.id !== "all").map(c => (
+                            <option key={c.id} value={c.id}>{c.label}</option>
+                          ))}
+                        </select>
+                        <input type="text" placeholder="ชื่อรายการ" value={newItemName} onChange={e => { setNewItemName(e.target.value); setAddError(""); }} onKeyDown={e => e.key === "Enter" && addItem()} className="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-brand text-gray-900" autoFocus />
+                      </div>
+                      {addError && <p className="text-sm text-red-500">{addError}</p>}
+                      <div className="flex gap-2">
+                        <button onClick={addItem} disabled={!newItemName.trim() || adding} className="px-4 py-2 rounded-lg bg-brand text-white font-medium hover:bg-brand-dark transition-colors disabled:opacity-40">
+                          {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : "เพิ่ม"}
+                        </button>
+                        <button onClick={() => { setShowAddForm(false); setNewItemName(""); setNewItemDesc(""); setAddError(""); }} className="px-4 py-2 rounded-lg bg-gray-200 text-gray-600 font-medium hover:bg-gray-300 transition-colors">ยกเลิก</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="grid gap-3">
@@ -564,22 +645,18 @@ export default function Home() {
                   {showAddForm ? (
                     <div className="p-4 rounded-xl border-2 border-brand bg-white space-y-3">
                       <input type="text" placeholder="ชื่อรายการ" value={newItemName} onChange={e => { setNewItemName(e.target.value); setAddError(""); }} onKeyDown={e => e.key === "Enter" && addItem()} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-brand text-gray-900" autoFocus />
-                      <input type="text" placeholder="รายละเอียด (ไม่จำเป็น)" value={newItemDesc} onChange={e => setNewItemDesc(e.target.value)} onKeyDown={e => e.key === "Enter" && addItem()} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-brand text-gray-900" />
                       {addError && <p className="text-sm text-red-500">{addError}</p>}
                       <div className="flex gap-2">
-                        <button onClick={addItem} disabled={!newItemName.trim()} className="px-4 py-2 rounded-lg bg-brand text-white font-medium hover:bg-brand-dark transition-colors disabled:opacity-40">เพิ่ม</button>
-                        <button onClick={() => { setShowAddForm(false); setNewItemName(""); setNewItemDesc(""); }} className="px-4 py-2 rounded-lg bg-gray-200 text-gray-600 font-medium hover:bg-gray-300 transition-colors">ยกเลิก</button>
+                        <button onClick={addItem} disabled={!newItemName.trim() || adding} className="px-4 py-2 rounded-lg bg-brand text-white font-medium hover:bg-brand-dark transition-colors disabled:opacity-40">
+                          {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : "เพิ่ม"}
+                        </button>
+                        <button onClick={() => { setShowAddForm(false); setNewItemName(""); setNewItemDesc(""); setAddError(""); }} className="px-4 py-2 rounded-lg bg-gray-200 text-gray-600 font-medium hover:bg-gray-300 transition-colors">ยกเลิก</button>
                       </div>
                     </div>
-                  ) : isPro ? (
+                  ) : (
                     <button onClick={() => setShowAddForm(true)} className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-brand hover:text-brand transition-all">
                       <div className="w-6 h-6 rounded-md border-2 border-current flex items-center justify-center"><Plus className="w-4 h-4" /></div>
                       <span className="font-medium">เพิ่มรายการ</span>
-                    </button>
-                  ) : (
-                    <button onClick={() => scrollTo("pricing")} className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-brand hover:text-brand transition-all">
-                      <div className="w-6 h-6 rounded-md border-2 border-current flex items-center justify-center"><Plus className="w-4 h-4" /></div>
-                      <span className="font-medium">เพิ่มรายการ <span className="text-xs text-brand ml-1">PRO</span></span>
                     </button>
                   )}
                 </div>
@@ -588,7 +665,7 @@ export default function Home() {
           </div>
 
           {/* Save / Template Bar */}
-          <div className="mt-8 pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4">
             <div className="flex items-center gap-2">
               {isDirty ? (
                 <>
@@ -661,8 +738,8 @@ export default function Home() {
 
       {/* Template Name Modal */}
       {showTemplateModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setShowTemplateModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-96 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={() => setShowTemplateModal(false)}>
+          <div className="bg-white rounded-2xl p-5 md:p-6 w-full max-w-sm md:w-96 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-gray-800 mb-4">📌 บันทึกเป็น Template</h3>
             <input
               type="text"
@@ -741,92 +818,14 @@ export default function Home() {
         </section>
       )}
 
-      {/* PRO Results: Custom Suggestions & Outfits */}
-      {generatedResult && isPro && (generatedResult.custom_suggestions.length > 0 || generatedResult.outfits.length > 0) && (
-        <section className="bg-[#F5F3EF] py-16">
-          <div className="max-w-6xl mx-auto px-6 md:px-16">
-            <div className="flex items-center gap-3 mb-8">
-              <span className="px-3 py-1 rounded-full bg-brand text-white text-xs font-bold">PRO</span>
-              <h2 className="text-2xl font-bold text-gray-900">คำแนะนำเพิ่มเติมจาก AI</h2>
-            </div>
-
-            {/* Custom Suggestions */}
-            {generatedResult.custom_suggestions.length > 0 && (
-              <div className="mb-10">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">รายการตามกิจกรรม</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {generatedResult.custom_suggestions.map((suggestion, i) => (
-                    <div key={i} className="flex items-center gap-3 p-4 rounded-xl bg-white shadow-sm">
-                      <div className="w-6 h-6 rounded-md bg-brand flex items-center justify-center flex-shrink-0">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-sm text-gray-700">{suggestion}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Outfit Moodboard */}
-            {generatedResult.outfits.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Outfit Moodboard</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {generatedResult.outfits.map((outfit, i) => (
-                    <div key={i} className="bg-white rounded-2xl p-6 shadow-lg">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-bold text-gray-900">{outfit.name}</h4>
-                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-brand/10 text-brand">{outfit.style}</span>
-                      </div>
-                      <ul className="space-y-1.5 mb-4">
-                        {outfit.items.map((item, j) => (
-                          <li key={j} className="flex items-center gap-2 text-sm text-gray-600">
-                            <span className="w-1.5 h-1.5 rounded-full bg-brand" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="text-sm text-gray-500 italic border-t border-gray-100 pt-3">{outfit.match_reason}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
 
       {/* ─── OUTFITS ─── */}
-      <section id="outfits" className="px-6 md:px-16 lg:px-24 py-20">
-        {/* Pro Banner */}
-        <div className="bg-gradient-to-r from-[#6B5B4D] to-[#5A4A3D] rounded-2xl p-6 md:p-8 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-[#F4A940] rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-              <Sparkles className="w-7 h-7 text-white" />
-            </div>
-            <div className="text-white text-center md:text-left">
-              <h3 className="text-xl md:text-2xl font-bold mb-1">Outfit Moodboard & AI Smart Matching</h3>
-              <p className="text-white/70 text-sm md:text-base">AI จับคู่ชุดกับการเดินทางและสภาพอากาศ — สำหรับสมาชิก Pro</p>
-            </div>
-          </div>
-          <button onClick={() => { localStorage.setItem("pg_user_tier", "pro"); setUserTier("pro"); scrollTo("pricing"); }} className="flex items-center gap-2 bg-[#F4A940] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#E09830] transition-colors shadow-md whitespace-nowrap">
-            <Star className="w-4 h-4 fill-white" />อัปเกรด Pro
-          </button>
-        </div>
-
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
-          <h2 className="text-2xl md:text-5xl text-gray-900">Outfits <span className="text-3xl font-base text-gray-500 ml-2">ประจำทริป</span></h2>
-          <div className="flex gap-2 flex-wrap items-center">
-            <button
-              onClick={() => isPro ? setStylistOpen(!stylistOpen) : null}
-              className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all shadow-md ${isPro ? "bg-gradient-to-r from-[#C97D4E] to-[#A66B3F] text-white hover:opacity-90" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
-            >
-              <Sparkles className="w-4 h-4" />
-              AI Stylist
-              {!isPro && <span className="text-xs ml-1">PRO</span>}
-            </button>
+      <section id="outfits" className="px-4 md:px-8 lg:px-24 py-10 md:py-20">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4 mb-3 md:mb-4">
+          <h2 className="text-xl md:text-3xl lg:text-5xl text-gray-900">Outfits <span className="text-lg md:text-2xl lg:text-3xl font-base text-gray-500 ml-1 md:ml-2">ประจำทริป</span></h2>
+          <div className="flex gap-1.5 md:gap-2 flex-wrap items-center">
             {outfitFilters.map(f => (
-              <button key={f.id} onClick={() => setOutfitFilter(f.id)} className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${outfitFilter === f.id ? "bg-brand text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}>
+              <button key={f.id} onClick={() => setOutfitFilter(f.id)} className={`px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-[11px] md:text-sm font-medium transition-all ${outfitFilter === f.id ? "bg-brand text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}>
                 {f.label}
               </button>
             ))}
@@ -834,9 +833,9 @@ export default function Home() {
         </div>
 
         {/* Destination Type Filters */}
-        <div className="flex gap-2 flex-wrap items-center mb-8">
+        <div className="flex gap-1.5 md:gap-2 flex-wrap items-center mb-6 md:mb-8">
           {outfitDestFilters.map(f => (
-            <button key={f.id} onClick={() => setOutfitDestFilter(f.id)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${outfitDestFilter === f.id ? "bg-[#5A4A3D] text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}>
+            <button key={f.id} onClick={() => setOutfitDestFilter(f.id)} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[11px] md:text-xs font-medium transition-all ${outfitDestFilter === f.id ? "bg-[#5A4A3D] text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}>
               {f.label}
             </button>
           ))}
@@ -876,159 +875,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* AI Stylist Form */}
-        {stylistOpen && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C97D4E] to-[#A66B3F] flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">AI Stylist สไตลิสต์แฟชั่นมืออาชีพ</h3>
-                <p className="text-sm text-gray-500">กรอกข้อมูลทริปของคุณ เราจะแนะนำชุดที่เหมาะกับคุณ</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">จุดหมายปลายทาง</label>
-                <input
-                  type="text"
-                  placeholder="เช่น โตเกียว, ปารีส, ภูเก็ต"
-                  value={stylistData.location}
-                  onChange={e => setStylistData(prev => ({ ...prev, location: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">สภาพอากาศ</label>
-                <select
-                  value={stylistData.weather}
-                  onChange={e => setStylistData(prev => ({ ...prev, weather: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all text-sm bg-white"
-                >
-                  <option value="hot">ร้อน</option>
-                  <option value="cold">หนาว</option>
-                  <option value="rain">ฝน</option>
-                  <option value="variable">แปรปรวน</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">ระยะเวลา (วัน)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="30"
-                  value={stylistData.days}
-                  onChange={e => setStylistData(prev => ({ ...prev, days: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">กิจกรรม</label>
-                <input
-                  type="text"
-                  placeholder="เช่น เที่ยวชมเมือง, ชายหาด, ดินเนอร์"
-                  value={stylistData.activities}
-                  onChange={e => setStylistData(prev => ({ ...prev, activities: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">สไตล์ที่ชอบ</label>
-                <select
-                  value={stylistData.style}
-                  onChange={e => setStylistData(prev => ({ ...prev, style: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all text-sm bg-white"
-                >
-                  <option value="casual">ลำลอง (Casual)</option>
-                  <option value="minimal">มินิมอล (Minimal)</option>
-                  <option value="street">สตรีท (Street)</option>
-                  <option value="elegant">หรูหรา (Elegant)</option>
-                  <option value="sporty">สปอร์ต (Sporty)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">เพศ</label>
-                <select
-                  value={stylistData.gender}
-                  onChange={e => setStylistData(prev => ({ ...prev, gender: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none transition-all text-sm bg-white"
-                >
-                  <option value="unisex">ไม่ระบุ</option>
-                  <option value="male">ชาย</option>
-                  <option value="female">หญิง</option>
-                </select>
-              </div>
-            </div>
-
-            <button
-              onClick={generateOutfitRecommendation}
-              disabled={!stylistData.location.trim() || stylistLoading}
-              className="w-full md:w-auto px-8 py-3 rounded-xl bg-brand hover:bg-brand-dark text-white font-semibold transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {stylistLoading ? (
-                <>
-                  <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>
-                  กำลังประมวลผล...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  ขอคำแนะนำชุด
-                </>
-              )}
-            </button>
-
-            {/* Result */}
-            {stylistResult && stylistImages && (
-              <div className="mt-8 space-y-8">
-                {/* Outfit Images Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Day Outfit */}
-                  <div className="bg-white rounded-2xl overflow-hidden shadow-lg">
-                    <div className="aspect-[4/5] relative">
-                      <Image src={stylistImages.day} alt="ชุดกลางวัน" fill className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                        <p className="text-xs opacity-80 mb-1">☀️ Day Look</p>
-                        <h4 className="font-semibold">ชุดกลางวัน</h4>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Night Outfit */}
-                  <div className="bg-white rounded-2xl overflow-hidden shadow-lg">
-                    <div className="aspect-[4/5] relative">
-                      <Image src={stylistImages.night} alt="ชุดกลางคืน" fill className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                        <p className="text-xs opacity-80 mb-1">🌙 Night Look</p>
-                        <h4 className="font-semibold">ชุดกลางคืน</h4>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Activity Outfit */}
-                  <div className="bg-white rounded-2xl overflow-hidden shadow-lg">
-                    <div className="aspect-[4/5] relative">
-                      <Image src={stylistImages.activity} alt="ชุดกิจกรรม" fill className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                        <p className="text-xs opacity-80 mb-1">🎯 Activity Look</p>
-                        <h4 className="font-semibold">ชุดกิจกรรมพิเศษ</h4>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {/* Text Details */}
-                <div className="p-6 bg-[#F5F3EF] rounded-xl prose prose-sm max-w-none">
-                  <div className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed">{stylistResult}</div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-12">
           {outfitsLoading ? (
             <div className="col-span-full flex items-center justify-center py-12"><Loader2 className="w-8 h-8 text-brand animate-spin" /></div>
           ) : filteredOutfits.length === 0 ? (
@@ -1036,31 +883,51 @@ export default function Home() {
               <p>ยังไม่มี Outfit suggestions</p>
             </div>
           ) : (
-            filteredOutfits.map(o => (
-              <div key={o.id} className="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group aspect-[4/5]">
-                <Image src={o.image_url || "/asset/Shibuya Night Out.svg"} alt={o.description || "Outfit"} fill className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                <button onClick={() => isPro ? toggleOutfitSave(o.id) : null} className={`absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors ${isPro ? "bg-white/20 hover:bg-white/40" : "bg-white/10 cursor-not-allowed"}`}>
-                  <Heart className={`w-5 h-5 ${isPro && isOutfitSaved(o.id) ? "text-red-500 fill-red-500" : isPro ? "text-white" : "text-white/40"}`} />
-                </button>
-                <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">{o.occasion}</span>
-                    {o.weather_condition && <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">{o.weather_condition}</span>}
+            filteredOutfits.map(o => {
+              const styleName = o.style_tags.length >= 2 && o.style_tags[0] === "casual"
+                ? (outfitStyleNameMap[o.style_tags[1]] || outfitStyleNameMap[o.style_tags[0]] || "Everyday Style")
+                : (outfitStyleNameMap[o.style_tags[0]] || "Everyday Style");
+              return (
+                <div
+                  key={o.id}
+                  onClick={() => { isPro ? setSelectedOutfit(o) : setShowProPopup(true); }}
+                  className={`relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group aspect-[3/4] md:aspect-[4/5] ${!isPro ? "ring-1 ring-gray-200" : "hover:ring-2 hover:ring-brand/50"} transition-all duration-300`}
+                >
+                  <Image src={o.image_url || "/asset/Shibuya Night Out.svg"} alt={o.description || "Outfit"} fill className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  {/* Free lock badge */}
+                  {!isPro && (
+                    <div className="absolute top-2 md:top-4 left-2 md:left-4 px-2 md:px-3 py-1 md:py-1.5 rounded-full bg-white/90 backdrop-blur-sm flex items-center gap-1 md:gap-1.5 shadow-sm">
+                      <Crown className="w-3 h-3 md:w-3.5 md:h-3.5 text-brand" />
+                      <span className="text-[10px] md:text-xs font-bold text-gray-700">PRO</span>
+                    </div>
+                  )}
+                  {/* Save button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); if (isPro) toggleOutfitSave(o.id); else setShowProPopup(true); }}
+                    className={`absolute top-2 md:top-4 right-2 md:right-4 w-8 h-8 md:w-10 md:h-10 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors ${isPro ? "bg-white/20 hover:bg-white/40" : "bg-white/10"}`}
+                  >
+                    <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isPro && isOutfitSaved(o.id) ? "text-red-500 fill-red-500" : "text-white/80"}`} />
+                  </button>
+                  {/* Content overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-2.5 md:p-5 text-white">
+                    <h3 className="text-sm md:text-lg font-bold mb-1 md:mb-2">{styleName}</h3>
+                    <div className="flex items-center gap-1 md:gap-2">
+                      <span className="text-[10px] md:text-xs bg-white/20 px-1.5 md:px-2 py-0.5 rounded-full">{o.occasion}</span>
+                      {o.weather_condition && <span className="text-[10px] md:text-xs bg-white/20 px-1.5 md:px-2 py-0.5 rounded-full">{o.weather_condition}</span>}
+                    </div>
                   </div>
-                  <h3 className="text-lg font-semibold">{o.description || `${o.destination_type} - ${o.occasion}`}</h3>
-                  <p className="text-sm text-white/70">{o.destination_type}</p>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
-        <h3 className="text-xl text-gray-900 mb-6 flex items-center gap-2">ช้อปเพิ่มเติมจาก Partner <ChevronRight className="w-5 h-5 text-brand" /></h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <h3 className="text-base md:text-xl text-gray-900 mb-4 md:mb-6 flex items-center gap-2">ช้อปเพิ่มเติมจาก Partner <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-brand" /></h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-5">
           {partners.map(p => (
-            <div key={p.id} className="bg-brand rounded-2xl p-6 flex items-center gap-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 shadow-md">
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+            <div key={p.id} className="bg-brand rounded-2xl p-4 md:p-6 flex items-center gap-3 md:gap-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 shadow-md">
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                 {p.logo ? <Image src={p.logo} alt={p.name} fill className="w-full h-full object-contain" /> : <span className="text-2xl font-bold text-white">{p.name.charAt(0)}</span>}
               </div>
               <div className="flex-1">
@@ -1080,19 +947,231 @@ export default function Home() {
         />
       )}
 
+      {/* Outfit Detail Modal (Pro) */}
+      {selectedOutfit && (
+        <OutfitDetailModal
+          outfit={selectedOutfit}
+          isSaved={isOutfitSaved(selectedOutfit.id)}
+          onToggleSave={() => toggleOutfitSave(selectedOutfit.id)}
+          onClose={() => setSelectedOutfit(null)}
+        />
+      )}
+
+      {/* Pro Upgrade Popup (Free) */}
+      {showProPopup && (
+        <ProUpgradePopup
+          onClose={() => setShowProPopup(false)}
+          onUpgrade={() => { localStorage.setItem("pg_user_tier", "pro"); setUserTier("pro"); setShowProPopup(false); showToast("อัปเกรดเป็น Pro สำเร็จ!"); }}
+        />
+      )}
+
+      {/* ─── BOOKINGS ─── */}
+      <section id="bookings" className="bg-white py-10 md:py-20">
+        <div className="max-w-6xl mx-auto px-4 md:px-16">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4 mb-6 md:mb-8">
+            <div>
+              <div className="inline-block mb-1">
+                <h2 className="text-3xl md:text-4xl font-serif text-gray-900 mb-1.5">Bookings</h2>
+                <div className="w-full h-px bg-brand" />
+              </div>
+              <p className="text-gray-500 text-xs md:text-sm mt-2">ติดตามและจัดการการจองทริปทั้งหมดของคุณ</p>
+            </div>
+            {trips.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <Luggage className="w-4 h-4" />
+                <span>{trips.length} การจอง</span>
+              </div>
+            )}
+          </div>
+
+          {/* Summary Cards */}
+          {user && trips.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+              {(["pending", "ongoing", "completed", "cancelled"] as UIStatus[]).map((s) => {
+                const cfg = BOOKING_STATUS[s];
+                const Icon = cfg.icon;
+                const count = trips.filter(t => computeBookingStatus(t) === s).length;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setBookingFilter(bookingFilter === s ? "all" : s)}
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      bookingFilter === s ? `${cfg.bg} ${cfg.border} shadow-sm` : "bg-[#F5F3EF] border-transparent hover:border-gray-200"
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-lg ${cfg.bg} flex items-center justify-center`}>
+                      <Icon className={`w-5 h-5 ${cfg.text}`} />
+                    </div>
+                    <div className="text-left">
+                      <p className={`text-2xl font-bold ${cfg.text}`}>{count}</p>
+                      <p className="text-xs text-gray-500">{cfg.label}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Filter Tabs */}
+          <div className="flex gap-2 flex-wrap mb-6">
+            {bookingFilters.map((tab) => {
+              const count = tab.id === "all"
+                ? trips.length
+                : trips.filter(t => computeBookingStatus(t) === tab.id).length;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setBookingFilter(tab.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    bookingFilter === tab.id
+                      ? "bg-brand text-white shadow-sm"
+                      : "bg-[#F5F3EF] text-gray-500 hover:bg-gray-200"
+                  }`}
+                >
+                  {tab.label}
+                  <span className={`ml-1.5 text-xs ${bookingFilter === tab.id ? "text-white/70" : "text-gray-400"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Booking List */}
+          {!user ? (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 rounded-2xl bg-[#F5F3EF] flex items-center justify-center mx-auto mb-4">
+                <Luggage className="w-8 h-8 text-gray-300" />
+              </div>
+              <p className="text-gray-700 font-semibold mb-1">กรุณาเข้าสู่ระบบ</p>
+              <p className="text-gray-400 text-sm">เข้าสู่ระบบเพื่อดูการจองของคุณ</p>
+            </div>
+          ) : (() => {
+            const filtered = bookingFilter === "all"
+              ? trips
+              : trips.filter(t => computeBookingStatus(t) === bookingFilter);
+            if (filtered.length === 0) return (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 rounded-2xl bg-[#F5F3EF] flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-8 h-8 text-gray-300" />
+                </div>
+                <p className="text-gray-700 font-semibold mb-1">
+                  {trips.length === 0 ? "ยังไม่มีการจอง" : "ไม่พบการจองในหมวดนี้"}
+                </p>
+                <p className="text-gray-400 text-sm">
+                  {trips.length === 0 ? "จองทริปได้จากด้านบน" : "ลองเลือกหมวดอื่น"}
+                </p>
+              </div>
+            );
+            return (
+              <div className="space-y-4">
+                {filtered.map((trip) => {
+                  const status = computeBookingStatus(trip);
+                  const cfg = BOOKING_STATUS[status];
+                  const Icon = cfg.icon;
+                  const canCancel = status === "pending" || status === "ongoing";
+                  const dUntil = daysUntil(trip.start_date);
+                  return (
+                    <div key={trip.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                      <div className="p-5 md:p-6">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                              <Icon className="w-5 h-5 text-gray-500" />
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="text-lg font-semibold text-gray-900 truncate">{trip.title}</h3>
+                              {trip.destination && (
+                                <div className="flex items-center gap-1 text-gray-500 text-sm mt-0.5"><MapPin className="w-3.5 h-3.5" /><span className="truncate">{trip.destination}</span></div>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border flex-shrink-0 ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                            {cfg.label}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-sm text-gray-700">
+                            <Calendar className="w-3.5 h-3.5 text-brand" />{fmtDateRange(trip.start_date, trip.end_date)}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-sm text-gray-700">
+                            <Clock className="w-3.5 h-3.5 text-brand" />{trip.duration_days} วัน
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-sm text-gray-700">
+                            <Tag className="w-3.5 h-3.5 text-brand" />{destTypeLabels[trip.destination_type] || trip.destination_type}
+                          </span>
+                          {dUntil !== null && status === "pending" && dUntil > 0 && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50/60 text-sm text-amber-800 font-medium">
+                              <Hourglass className="w-3.5 h-3.5" />อีก {dUntil} วัน
+                            </span>
+                          )}
+                        </div>
+                        {canCancel ? (
+                          <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                            <p className="text-xs text-gray-400">สร้างเมื่อ {fmtDate(trip.created_at)}</p>
+                            <button onClick={() => setCancelTarget({ id: trip.id, title: trip.title })} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+                              <XCircle className="w-4 h-4" />ยกเลิกการจอง
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="pt-3 border-t border-gray-100">
+                            <p className="text-xs text-gray-400">สร้างเมื่อ {fmtDate(trip.created_at)}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Cancel Confirmation Modal */}
+          {cancelTarget && (
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setCancelTarget(null)}>
+              <div className="bg-white rounded-2xl p-7 w-[380px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-5">
+                  <AlertTriangle className="w-8 h-8 text-red-500" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 text-center mb-2">ยกเลิกการจอง?</h3>
+                <p className="text-sm text-gray-500 text-center mb-1">คุณต้องการยกเลิก</p>
+                <p className="text-base font-semibold text-gray-800 text-center mb-1">&quot;{cancelTarget.title}&quot;</p>
+                <p className="text-xs text-red-400 text-center mb-6">การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={async () => {
+                      setCancelling(true);
+                      try { await cancelTrip(cancelTarget.id); setCancelTarget(null); showToast("ยกเลิกการจองสำเร็จ"); }
+                      catch { showToast("ไม่สามารถยกเลิกการจองได้", "error"); }
+                      finally { setCancelling(false); }
+                    }}
+                    disabled={cancelling}
+                    className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors disabled:opacity-50"
+                  >
+                    {cancelling ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "ยืนยันยกเลิก"}
+                  </button>
+                  <button onClick={() => setCancelTarget(null)} className="px-6 py-3 rounded-xl bg-gray-100 text-gray-600 font-semibold hover:bg-gray-200 transition-colors">กลับ</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* ─── PRICING ─── */}
-      <section id="pricing" className="bg-white py-20">
-        <div className="px-6 md:px-16 lg:px-24 max-w-5xl mx-auto">
-          <div className="mb-12">
-            <p className="text-brand text-sm font-medium mb-2">แผนการใช้งาน</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">เลือกแผนที่ใช่สำหรับคุณ ✨</h2>
-            <p className="text-gray-500">เริ่มต้นฟรี อัปเกรดเมื่อพร้อม</p>
+      <section id="pricing" className="bg-white py-10 md:py-20">
+        <div className="px-4 md:px-8 lg:px-24 max-w-5xl mx-auto">
+          <div className="mb-8 md:mb-12">
+            <p className="text-brand text-xs md:text-sm font-medium mb-2">แผนการใช้งาน</p>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">เลือกแผนที่ใช่สำหรับคุณ ✨</h2>
+            <p className="text-gray-500 text-sm">เริ่มต้นฟรี อัปเกรดเมื่อพร้อม</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
             {/* Free */}
-            <div className="bg-[#F5F3EF] rounded-2xl p-8 shadow-lg">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Free</h3>
-              <div className="flex items-baseline gap-1 mb-1"><span className="text-4xl font-bold text-gray-900">฿0</span></div>
+            <div className="bg-[#F5F3EF] rounded-2xl p-5 md:p-8 shadow-lg">
+              <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Free</h3>
+              <div className="flex items-baseline gap-1 mb-1"><span className="text-3xl md:text-4xl font-bold text-gray-900">฿0</span></div>
               <p className="text-gray-500 text-sm mb-6">ตลอดชีพ</p>
               <div className="border-t border-gray-200 pt-6 mb-6">
                 <ul className="space-y-4">
@@ -1107,10 +1186,10 @@ export default function Home() {
               <button onClick={() => { localStorage.setItem("pg_user_tier", "free"); setUserTier("free"); showToast("ใช้งาน Free tier แล้ว"); }} className="w-full py-3 px-6 rounded-xl border-2 border-brand text-brand font-semibold hover:bg-brand hover:text-white transition-colors">ใช้งานฟรี</button>
             </div>
             {/* Pro */}
-            <div className="bg-gradient-to-br from-[#FDF0E6] to-[#F5E6D8] rounded-2xl p-8 shadow-lg relative">
-              <div className="absolute -top-3 left-6 bg-brand text-white px-4 py-1 rounded-full text-sm font-medium">⭐ ยอดนิยม</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Pro</h3>
-              <div className="flex items-baseline gap-1 mb-1"><span className="text-4xl font-bold text-gray-900">฿199</span><span className="text-gray-500">/เดือน</span></div>
+            <div className="bg-gradient-to-br from-[#FDF0E6] to-[#F5E6D8] rounded-2xl p-5 md:p-8 shadow-lg relative">
+              <div className="absolute -top-3 left-4 md:left-6 bg-brand text-white px-3 md:px-4 py-1 rounded-full text-xs md:text-sm font-medium">⭐ ยอดนิยม</div>
+              <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Pro</h3>
+              <div className="flex items-baseline gap-1 mb-1"><span className="text-3xl md:text-4xl font-bold text-gray-900">฿199</span><span className="text-gray-500 text-sm">/เดือน</span></div>
               <p className="text-gray-500 text-sm mb-6">&nbsp;</p>
               <div className="border-t border-brand/30 pt-6 mb-6">
                 <ul className="space-y-4">
@@ -1131,19 +1210,19 @@ export default function Home() {
       {/* Footer */}
       <footer className="relative">
         {/* Newsletter */}
-        <div className="relative z-10 max-w-4xl mx-auto px-6 -mb-16">
-          <div className="bg-[#F5F3EF] rounded-2xl shadow-xl p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-1">Our Newsletter</h3>
-              <p className="text-gray-500 text-sm">รับข่าวสารท่องเที่ยวและส่วนลดพิเศษทางอีเมล</p>
+        <div className="relative z-10 max-w-4xl mx-auto px-4 md:px-6 -mb-12 md:-mb-16">
+          <div className="bg-[#F5F3EF] rounded-2xl shadow-xl p-5 md:p-8 lg:p-10 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
+            <div className="text-center md:text-left">
+              <h3 className="text-lg md:text-2xl font-bold text-gray-900 mb-1">Our Newsletter</h3>
+              <p className="text-gray-500 text-xs md:text-sm">รับข่าวสารท่องเที่ยวและส่วนลดพิเศษทางอีเมล</p>
             </div>
-            <div className="flex w-full md:w-auto gap-3">
+            <div className="flex w-full md:w-auto gap-2 md:gap-3">
               <input
                 type="email"
                 placeholder="กรอกอีเมลของคุณ"
-                className="flex-1 md:w-72 px-5 py-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:border-brand text-gray-900 text-sm"
+                className="flex-1 md:w-72 px-4 md:px-5 py-2.5 md:py-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:border-brand text-gray-900 text-sm"
               />
-              <button className="px-6 py-3 rounded-xl bg-brand hover:bg-brand-dark text-white font-semibold transition-colors shadow-md whitespace-nowrap">
+              <button className="px-4 md:px-6 py-2.5 md:py-3 rounded-xl bg-brand hover:bg-brand-dark text-white font-semibold transition-colors shadow-md whitespace-nowrap text-sm">
                 Subscribe
               </button>
             </div>
@@ -1151,9 +1230,9 @@ export default function Home() {
         </div>
 
         {/* Footer Content */}
-        <div className="bg-[#1E1E2E] pt-28 pb-8">
-          <div className="max-w-6xl mx-auto px-6 md:px-16 lg:px-24">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-12">
+        <div className="bg-[#1E1E2E] pt-20 md:pt-28 pb-8">
+          <div className="max-w-6xl mx-auto px-4 md:px-8 lg:px-24">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-10 mb-8 md:mb-12">
               {/* Logo & Copyright */}
               <div className="col-span-2 md:col-span-1">
                 <div className="flex items-center gap-2 mb-4">

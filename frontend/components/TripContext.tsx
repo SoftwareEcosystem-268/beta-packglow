@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
-import { Trip, getTrips, createTrip, deleteTrip } from "@/lib/api";
+import { Trip, getTrips, createTrip, deleteTrip, updateTrip } from "@/lib/api";
 
 type TripContextType = {
   trips: Trip[];
@@ -11,6 +11,7 @@ type TripContextType = {
   setCurrentTrip: (trip: Trip | null) => void;
   createNewTrip: (data: Omit<Trip, "id" | "created_at" | "updated_at">) => Promise<Trip | null>;
   removeTrip: (tripId: string) => Promise<void>;
+  cancelTrip: (tripId: string) => Promise<void>;
   refreshTrips: () => Promise<void>;
 };
 
@@ -89,8 +90,16 @@ export function TripProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, []);
 
+  const cancelTrip = useCallback(async (tripId: string) => {
+    try {
+      const updated = await updateTrip(tripId, { status: "cancelled" });
+      setTrips((prev) => prev.map((t) => (t.id === tripId ? updated : t)));
+      setCurrentTripState((prev) => (prev?.id === tripId ? updated : prev));
+    } catch {}
+  }, []);
+
   return (
-    <TripContext.Provider value={{ trips, loading, currentTrip, setCurrentTrip, createNewTrip, removeTrip, refreshTrips }}>
+    <TripContext.Provider value={{ trips, loading, currentTrip, setCurrentTrip, createNewTrip, removeTrip, cancelTrip, refreshTrips }}>
       {children}
     </TripContext.Provider>
   );
