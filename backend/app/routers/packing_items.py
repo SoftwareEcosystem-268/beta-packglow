@@ -23,6 +23,8 @@ from typing import List, Optional
 import uuid
 
 from app.database import get_db
+from app.auth import get_current_user
+from app.models.user import User
 from app.models.packing import PackingItem
 from app.schemas.packing import PackingItemCreate, PackingItemResponse
 
@@ -35,7 +37,8 @@ router = APIRouter(prefix="/packing-items", tags=["Packing Items"])
 @router.post("/", response_model=PackingItemResponse, status_code=201)
 async def create_packing_item(
     item_data: PackingItemCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     สร้าง packing item ใหม่
@@ -76,7 +79,8 @@ async def create_packing_item(
 @router.get("/", response_model=List[PackingItemResponse])
 async def get_packing_items(
     user_id: Optional[uuid.UUID] = Query(None, description="Filter: system items + user's custom items"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     query = select(PackingItem)
     if user_id:
@@ -92,7 +96,8 @@ async def get_packing_items(
 @router.get("/{item_id}", response_model=PackingItemResponse)
 async def get_packing_item(
     item_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     ดึง packing item ตาม ID
@@ -116,7 +121,8 @@ async def get_packing_item(
 @router.delete("/{item_id}", status_code=204)
 async def delete_packing_item(
     item_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     ลบ packing item ตาม ID

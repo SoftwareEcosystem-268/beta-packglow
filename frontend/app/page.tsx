@@ -6,7 +6,7 @@ import { useTrips } from "@/components/TripContext";
 import {
   ArrowRight, Calendar, MapPin, ChevronRight,
   Check, X, Plus, Star, Sparkles, User, Heart, Loader2, FolderOpen, Crown,
-  AlertTriangle, CheckCircle2, PlayCircle, XCircle, Hourglass, Luggage, Clock, Tag,
+  AlertTriangle, CheckCircle2, PlayCircle, XCircle, Hourglass, Luggage, Clock, Tag, LogIn,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -226,6 +226,7 @@ export default function Home() {
   // Outfit modal state
   const [selectedOutfit, setSelectedOutfit] = useState<typeof apiOutfits[number] | null>(null);
   const [showProPopup, setShowProPopup] = useState(false);
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
 
   useEffect(() => {
     if (!toast) return;
@@ -811,7 +812,7 @@ export default function Home() {
                 <p className="text-sm text-gray-500">อธิบายว่าทำไมชุดนี้เหมาะกับสถานที่และกิจกรรมของคุณ</p>
               </div>
             </div>
-            <button onClick={() => { localStorage.setItem("pg_user_tier", "pro"); setUserTier("pro"); showToast("อัปเกรดเป็น Pro สำเร็จ!"); }} className="mt-6 flex items-center gap-2 mx-auto px-8 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all shadow-md">
+            <button onClick={() => { if (!user) { setShowLoginAlert(true); return; } localStorage.setItem("pg_user_tier", "pro"); setUserTier("pro"); showToast("อัปเกรดเป็น Pro สำเร็จ!"); }} className="mt-6 flex items-center gap-2 mx-auto px-8 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-all shadow-md">
               <Star className="w-5 h-5" />อัปเกรด Pro
             </button>
           </div>
@@ -963,6 +964,27 @@ export default function Home() {
           onClose={() => setShowProPopup(false)}
           onUpgrade={() => { localStorage.setItem("pg_user_tier", "pro"); setUserTier("pro"); setShowProPopup(false); showToast("อัปเกรดเป็น Pro สำเร็จ!"); }}
         />
+      )}
+
+      {/* Login Alert Modal */}
+      {showLoginAlert && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowLoginAlert(false)}>
+          <div className="bg-white rounded-3xl max-w-sm w-full shadow-2xl p-8 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-16 h-16 rounded-full bg-brand/10 flex items-center justify-center mx-auto mb-4">
+              <LogIn className="w-8 h-8 text-brand" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">กรุณาเข้าสู่ระบบ</h3>
+            <p className="text-gray-500 mb-6">คุณต้องเข้าสู่ระบบก่อนจึงจะสมัครแพ็กเกจ Pro ได้</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowLoginAlert(false)} className="flex-1 py-3 rounded-xl border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition-colors">
+                ยกเลิก
+              </button>
+              <a href="/login" className="flex-1 py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark transition-colors text-center">
+                เข้าสู่ระบบ
+              </a>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ─── BOOKINGS ─── */}
@@ -1183,7 +1205,7 @@ export default function Home() {
                   ))}
                 </ul>
               </div>
-              <button onClick={() => { localStorage.setItem("pg_user_tier", "free"); setUserTier("free"); showToast("ใช้งาน Free tier แล้ว"); }} className="w-full py-3 px-6 rounded-xl border-2 border-brand text-brand font-semibold hover:bg-brand hover:text-white transition-colors">ใช้งานฟรี</button>
+              <button onClick={() => { if (!user) { setShowLoginAlert(true); return; } localStorage.setItem("pg_user_tier", "free"); setUserTier("free"); showToast("ใช้งาน Free tier แล้ว"); }} className="w-full py-3 px-6 rounded-xl border-2 border-brand text-brand font-semibold hover:bg-brand hover:text-white transition-colors">ใช้งานฟรี</button>
             </div>
             {/* Pro */}
             <div className="bg-gradient-to-br from-[#FDF0E6] to-[#F5E6D8] rounded-2xl p-5 md:p-8 shadow-lg relative">
@@ -1201,7 +1223,7 @@ export default function Home() {
                   ))}
                 </ul>
               </div>
-              <button onClick={() => { localStorage.setItem("pg_user_tier", "pro"); setUserTier("pro"); showToast("อัปเกรดเป็น Pro สำเร็จ! ลองกด ✨ สร้างรายการอัตโนมัติ ที่ Packing"); }} className="w-full py-3 px-6 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark transition-colors shadow-md">เริ่มทดลองใช้ฟรี 7 วัน</button>
+              <button onClick={() => { if (!user) { setShowLoginAlert(true); return; } localStorage.setItem("pg_user_tier", "pro"); setUserTier("pro"); showToast("อัปเกรดเป็น Pro สำเร็จ! ลองกด ✨ สร้างรายการอัตโนมัติ ที่ Packing"); }} className="w-full py-3 px-6 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark transition-colors shadow-md">เริ่มทดลองใช้ฟรี 7 วัน</button>
             </div>
           </div>
         </div>

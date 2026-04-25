@@ -15,6 +15,7 @@ from typing import List, Optional
 import uuid
 
 from app.database import get_db
+from app.auth import get_current_user
 from app.models.checklist_template import ChecklistTemplate
 from app.models.user import User
 from app.schemas.checklist_template import ChecklistTemplateCreate, ChecklistTemplateResponse
@@ -28,7 +29,8 @@ router = APIRouter(prefix="/templates", tags=["Checklist Templates"])
 @router.post("/", response_model=ChecklistTemplateResponse, status_code=201)
 async def create_template(
     template_data: ChecklistTemplateCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     result = await db.execute(select(User).where(User.id == template_data.user_id))
     if not result.scalar_one_or_none():
@@ -51,7 +53,8 @@ async def create_template(
 @router.get("/", response_model=List[ChecklistTemplateResponse])
 async def get_templates(
     user_id: Optional[uuid.UUID] = Query(None, description="Filter เทมเพลตโดย user ID"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     query = select(ChecklistTemplate).order_by(ChecklistTemplate.created_at.desc())
     if user_id:
@@ -66,7 +69,8 @@ async def get_templates(
 @router.delete("/{template_id}", status_code=204)
 async def delete_template(
     template_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     result = await db.execute(
         select(ChecklistTemplate).where(ChecklistTemplate.id == template_id)

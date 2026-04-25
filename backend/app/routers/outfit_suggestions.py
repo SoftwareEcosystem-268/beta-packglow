@@ -23,6 +23,8 @@ from typing import List
 import uuid
 
 from app.database import get_db
+from app.auth import get_current_user
+from app.models.user import User
 from app.models.outfit import OutfitSuggestion
 from app.schemas.outfit import OutfitSuggestionCreate, OutfitSuggestionResponse
 
@@ -35,7 +37,8 @@ router = APIRouter(prefix="/outfit-suggestions", tags=["Outfit Suggestions"])
 @router.post("/", response_model=OutfitSuggestionResponse, status_code=201)
 async def create_outfit_suggestion(
     outfit_data: OutfitSuggestionCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     สร้าง outfit suggestion ใหม่
@@ -122,7 +125,8 @@ async def get_outfit_suggestion(
 @router.delete("/{outfit_id}", status_code=204)
 async def delete_outfit_suggestion(
     outfit_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     ลบ outfit suggestion ตาม ID

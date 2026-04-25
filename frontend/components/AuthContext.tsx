@@ -54,6 +54,11 @@ function emitUserChange() {
   for (const l of userListeners) l();
 }
 
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("pg_access_token");
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const user = useSyncExternalStore(subscribeUser, getUserSnapshot, getUserServerSnapshot);
 
@@ -71,8 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (!res.ok) return "เกิดข้อผิดพลาด กรุณาลองใหม่";
 
-      const data: User = await res.json();
-      localStorage.setItem("pg_current_user", JSON.stringify(data));
+      const data = await res.json();
+      localStorage.setItem("pg_access_token", data.access_token);
+      localStorage.setItem("pg_current_user", JSON.stringify(data.user));
       localStorage.setItem("pg_user_tier", "free");
       emitUserChange();
       return null;
@@ -92,8 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.status === 401) return "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
       if (!res.ok) return "เกิดข้อผิดพลาด กรุณาลองใหม่";
 
-      const data: User = await res.json();
-      localStorage.setItem("pg_current_user", JSON.stringify(data));
+      const data = await res.json();
+      localStorage.setItem("pg_access_token", data.access_token);
+      localStorage.setItem("pg_current_user", JSON.stringify(data.user));
       localStorage.setItem("pg_user_tier", "free");
       emitUserChange();
       return null;
@@ -103,7 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    localStorage.removeItem("pg_access_token");
     localStorage.removeItem("pg_current_user");
+    localStorage.removeItem("pg_user_tier");
     emitUserChange();
   }, []);
 

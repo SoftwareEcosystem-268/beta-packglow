@@ -1,15 +1,56 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
+function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("pg_access_token");
+}
+
+function clearAuth() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("pg_access_token");
+  localStorage.removeItem("pg_current_user");
+  localStorage.removeItem("pg_user_tier");
+  window.location.href = "/login";
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers,
     ...options,
   });
+
+  if (res.status === 401) {
+    clearAuth();
+    throw new Error("Session หมดอายุ กรุณาเข้าสู่ระบบใหม่");
+  }
+
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(`API Error: ${res.status} — ${detail}`);
   }
   return res.json();
+}
+
+async function apiFetchRaw(path: string, options?: RequestInit): Promise<Response> {
+  const token = getToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_URL}${path}`, {
+    headers,
+    ...options,
+  });
+
+  if (res.status === 401) {
+    clearAuth();
+    throw new Error("Session หมดอายุ กรุณาเข้าสู่ระบบใหม่");
+  }
+
+  return res;
 }
 
 // =============================================================================
@@ -37,7 +78,7 @@ export const createTrip = (data: Omit<Trip, "id" | "created_at" | "updated_at">)
   apiFetch<Trip>("/trips/", { method: "POST", body: JSON.stringify(data) });
 
 export const deleteTrip = (tripId: string) =>
-  fetch(`${API_URL}/trips/${tripId}`, { method: "DELETE" });
+  apiFetchRaw(`/trips/${tripId}`, { method: "DELETE" });
 
 export const updateTrip = (tripId: string, data: Partial<Pick<Trip, "title" | "destination_type" | "destination" | "duration_days" | "activities" | "start_date" | "end_date" | "status">>) =>
   apiFetch<Trip>(`/trips/${tripId}`, { method: "PATCH", body: JSON.stringify(data) });
@@ -61,7 +102,7 @@ export const createPackingItem = (data: Omit<PackingItem, "id">) =>
   apiFetch<PackingItem>("/packing-items/", { method: "POST", body: JSON.stringify(data) });
 
 export const deletePackingItem = (itemId: string) =>
-  fetch(`${API_URL}/packing-items/${itemId}`, { method: "DELETE" });
+  apiFetchRaw(`/packing-items/${itemId}`, { method: "DELETE" });
 
 // =============================================================================
 // Outfit Suggestions
@@ -103,7 +144,7 @@ export const saveOutfit = (userId: string, outfitId: string) =>
   });
 
 export const deleteSavedOutfit = (savedId: string) =>
-  fetch(`${API_URL}/saved-outfits/${savedId}`, { method: "DELETE" });
+  apiFetchRaw(`/saved-outfits/${savedId}`, { method: "DELETE" });
 
 // =============================================================================
 // Checklists
@@ -143,7 +184,7 @@ export const updateChecklist = (id: string, data: { is_packed?: boolean; custom_
   });
 
 export const deleteChecklistItem = (id: string) =>
-  fetch(`${API_URL}/checklists/${id}`, { method: "DELETE" });
+  apiFetchRaw(`/checklists/${id}`, { method: "DELETE" });
 
 export const bulkSaveChecklist = (tripId: string, items: ChecklistItem[]) =>
   apiFetch<ChecklistItem[]>(`/checklists/bulk?trip_id=${tripId}`, {
@@ -182,7 +223,7 @@ export const createTemplate = (data: {
   });
 
 export const deleteTemplate = (templateId: string) =>
-  fetch(`${API_URL}/templates/${templateId}`, { method: "DELETE" });
+  apiFetchRaw(`/templates/${templateId}`, { method: "DELETE" });
 
 // =============================================================================
 // Packing Assistant
