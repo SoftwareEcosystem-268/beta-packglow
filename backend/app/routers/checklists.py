@@ -27,6 +27,8 @@ from typing import List, Optional
 import uuid
 
 from app.database import get_db
+from app.auth import get_current_user
+from app.models.user import User
 from app.models.packing import TripChecklist
 from app.models.trip import Trip
 from app.models.packing import PackingItem
@@ -41,7 +43,8 @@ router = APIRouter(prefix="/checklists", tags=["Trip Checklists"])
 @router.post("/", response_model=TripChecklistResponse, status_code=201)
 async def create_checklist_item(
     checklist_data: TripChecklistCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     สร้าง checklist item ใหม่
@@ -91,7 +94,8 @@ async def create_checklist_item(
 @router.get("/", response_model=List[TripChecklistResponse])
 async def get_checklists(
     trip_id: Optional[uuid.UUID] = Query(None, description="Filter checklists โดย trip ID"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     ดึง checklist items ทั้งหมด
@@ -117,7 +121,8 @@ async def get_checklists(
 @router.get("/{checklist_id}", response_model=TripChecklistResponse)
 async def get_checklist_item(
     checklist_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     ดึง checklist item ตาม ID
@@ -141,7 +146,8 @@ async def get_checklist_item(
 async def update_checklist_item(
     checklist_id: uuid.UUID,
     checklist_data: TripChecklistUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     อัพเดท checklist item (partial update)
@@ -177,7 +183,8 @@ async def update_checklist_item(
 @router.delete("/{checklist_id}", status_code=204)
 async def delete_checklist_item(
     checklist_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     ลบ checklist item ตาม ID
@@ -206,7 +213,8 @@ async def delete_checklist_item(
 async def bulk_save_checklist(
     trip_id: uuid.UUID = Query(..., description="Trip ID to save checklist for"),
     data: BulkChecklistRequest = ...,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Bulk save checklist items for a trip.

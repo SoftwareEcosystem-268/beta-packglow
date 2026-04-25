@@ -5,7 +5,9 @@ Users Router - API endpoints สำหรับ Users
 Router นี้จัดการ CRUD operations ของ Users
 
 Endpoints:
-- POST /users/      -> สร้าง user ใหม่
+- POST /users/      -> สร้าง user ใหม่ (signup)
+- POST /users/login -> เข้าสู่ระบบ (login)
+- GET /users/me     -> ดู profile ของ user ที่ login อยู่
 - GET /users/       -> ดู users ทั้งหมด
 - GET /users/{id}   -> ดู user ตาม ID
 - DELETE /users/{id} -> ลบ user
@@ -13,7 +15,8 @@ Endpoints:
 Dependencies:
 - database session (get_db)
 - User model
-- User schemas (UserCreate, UserResponse)
+- User schemas (UserCreate, UserLogin, UserResponse, LoginResponse)
+- auth module (create_access_token, get_current_user)
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -25,7 +28,8 @@ import bcrypt
 
 from app.database import get_db
 from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserResponse
+from app.schemas.user import UserCreate, UserLogin, UserResponse, LoginResponse
+from app.auth import create_access_token, get_current_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -35,28 +39,10 @@ def hash_password(password: str) -> str:
 
 
 # =============================================================================
-# POST /users/ - สร้าง user ใหม่
+# POST /users/ - สร้าง user ใหม่ (signup)
 # =============================================================================
-@router.post("/", response_model=UserResponse, status_code=201)
+@router.post("/", response_model=LoginResponse, status_code=201)
 async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
-    """
-    สร้าง user ใหม่
-
-    Request body:
-        {
-            "email": "user@example.com"
-        }
-
-    Response:
-        {
-            "id": "uuid",
-            "email": "user@example.com",
-            "created_at": "2024-01-15T10:30:00Z"
-        }
-
-    Errors:
-        400: Email already registered (ถ้า email ซ้ำ)
-    """
     # ตรวจสอบว่า email มีอยู่แล้วหรือยัง
     result = await db.execute(select(User).where(User.email == user_data.email))
     if result.scalar_one_or_none():
@@ -71,26 +57,16 @@ async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db))
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    return user
+
+    token = create_access_token({"sub": str(user.id)})
+    return LoginResponse(access_token=token, user=user)
 
 
 # =============================================================================
 # POST /users/login - เข้าสู่ระบบ
 # =============================================================================
-@router.post("/login", response_model=UserResponse)
+@router.post("/login", response_model=LoginResponse)
 async def login_user(login_data: UserLogin, db: AsyncSession = Depends(get_db)):
-    """
-    เข้าสู่ระบบ
-
-    Request body:
-        {
-            "email": "user@example.com",
-            "password": "yourpassword"
-        }
-
-    Errors:
-        401: Invalid email or password
-    """
     result = await db.execute(select(User).where(User.email == login_data.email))
     user = result.scalar_one_or_none()
     if not user:
@@ -99,7 +75,16 @@ async def login_user(login_data: UserLogin, db: AsyncSession = Depends(get_db)):
     if not bcrypt.checkpw(login_data.password.encode(), user.hashed_password.encode()):
         raise HTTPException(status_code=401, detail="อีเมลหรือรหัสผ่านไม่ถูกต้อง")
 
-    return user
+    token = create_access_token({"sub": str(user.id)})
+    return LoginResponse(access_token=token, user=user)
+
+
+# =============================================================================
+# GET /users/me - ดู profile ของ user ที่ login อยู่
+# =============================================================================
+@router.get("/me", response_model=UserResponse)
+async def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
 
 
 # =============================================================================
@@ -107,25 +92,6 @@ async def login_user(login_data: UserLogin, db: AsyncSession = Depends(get_db)):
 # =============================================================================
 @router.get("/", response_model=List[UserResponse])
 async def get_users(db: AsyncSession = Depends(get_db)):
-    """
-    ดึง users ทั้งหมด
-
-    Response:
-        [
-            {
-                "id": "uuid",
-                "email": "user1@example.com",
-                "created_at": "..."
-            },
-            {
-                "id": "uuid",
-                "email": "user2@example.com",
-                "created_at": "..."
-            }
-        ]
-
-    Note: ใน production ควรมี pagination
-    """
     result = await db.execute(select(User))
     users = result.scalars().all()
     return users
@@ -136,22 +102,6 @@ async def get_users(db: AsyncSession = Depends(get_db)):
 # =============================================================================
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    """
-    ดึง user ตาม ID
-
-    Path params:
-        user_id: UUID ของ user
-
-    Response:
-        {
-            "id": "uuid",
-            "email": "user@example.com",
-            "created_at": "..."
-        }
-
-    Errors:
-        404: User not found (ถ้า ID ไม่ถูกต้อง)
-    """
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -164,21 +114,6 @@ async def get_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 # =============================================================================
 @router.delete("/{user_id}", status_code=204)
 async def delete_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    """
-    ลบ user ตาม ID
-
-    Path params:
-        user_id: UUID ของ user ที่ต้องการลบ
-
-    Response:
-        204 No Content (ลบสำเร็จ ไม่มี body)
-
-    Errors:
-        404: User not found (ถ้า ID ไม่ถูกต้อง)
-
-    Note:
-        - cascade delete: จะลบ trips และ saved_outfits ด้วย
-    """
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:

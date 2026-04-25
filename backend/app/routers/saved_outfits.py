@@ -28,6 +28,7 @@ from typing import List
 import uuid
 
 from app.database import get_db
+from app.auth import get_current_user
 from app.models.outfit import SavedOutfit, OutfitSuggestion
 from app.models.user import User
 from app.schemas.outfit import SavedOutfitCreate, SavedOutfitResponse
@@ -42,7 +43,8 @@ router = APIRouter(prefix="/saved-outfits", tags=["Saved Outfits"])
 async def save_outfit(
     saved_data: SavedOutfitCreate,
     user_id: uuid.UUID = Query(..., description="UUID ของ user ที่บันทึก"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     บันทึก outfit
@@ -97,7 +99,8 @@ async def save_outfit(
 @router.get("/", response_model=List[SavedOutfitResponse])
 async def get_saved_outfits(
     user_id: uuid.UUID = Query(..., description="UUID ของ user"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     ดึง saved outfits ของ user
@@ -124,7 +127,8 @@ async def get_saved_outfits(
 @router.get("/{saved_id}", response_model=SavedOutfitResponse)
 async def get_saved_outfit(
     saved_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     ดึง saved outfit ตาม ID
@@ -149,7 +153,8 @@ async def get_saved_outfit(
 @router.delete("/{saved_id}", status_code=204)
 async def delete_saved_outfit(
     saved_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     ลบ saved outfit ตาม ID

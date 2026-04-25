@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
-import { ChevronLeft, ChevronRight, Check, X } from "lucide-react";
+import { useAuth } from "@/components/AuthContext";
+import { ChevronLeft, ChevronRight, Check, X, LogIn } from "lucide-react";
 
 const freeFeatures = [
   { name: "Destination Picker", included: true },
@@ -21,9 +23,40 @@ const proFeatures = [
 ];
 
 export default function PricingPage() {
+  const { user } = useAuth();
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
+
+  const handleProClick = () => {
+    if (!user) {
+      setShowLoginAlert(true);
+      return;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F5F3EF]">
       <Navbar variant="light" />
+
+      {/* Login Alert Modal */}
+      {showLoginAlert && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowLoginAlert(false)}>
+          <div className="bg-white rounded-3xl max-w-sm w-full shadow-2xl p-8 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-16 h-16 rounded-full bg-[#C97D4E]/10 flex items-center justify-center mx-auto mb-4">
+              <LogIn className="w-8 h-8 text-[#C97D4E]" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">กรุณาเข้าสู่ระบบ</h3>
+            <p className="text-gray-500 mb-6">คุณต้องเข้าสู่ระบบก่อนจึงจะสมัครแพ็กเกจ Pro ได้</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowLoginAlert(false)} className="flex-1 py-3 rounded-xl border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition-colors">
+                ยกเลิก
+              </button>
+              <a href="/login" className="flex-1 py-3 rounded-xl bg-[#C97D4E] text-white font-semibold hover:bg-[#A66B3F] transition-colors text-center">
+                เข้าสู่ระบบ
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="px-6 md:px-12 lg:px-16 py-12 max-w-5xl mx-auto">
         {/* Header */}
@@ -108,7 +141,7 @@ export default function PricingPage() {
               </ul>
             </div>
 
-            <button className="w-full py-3 px-6 rounded-xl bg-[#C97D4E] text-white font-semibold hover:bg-[#A66B3F] transition-colors shadow-md">
+            <button onClick={handleProClick} className="w-full py-3 px-6 rounded-xl bg-[#C97D4E] text-white font-semibold hover:bg-[#A66B3F] transition-colors shadow-md">
               เริ่มทดลองใช้ฟรี 7 วัน
             </button>
           </div>
