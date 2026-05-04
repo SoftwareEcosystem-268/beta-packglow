@@ -23,7 +23,11 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import get_settings
 from app.database import init_db
 from app.rate_limit import limiter
-from app.routers import health, users, trips, packing_items, checklists, outfit_suggestions, saved_outfits, templates, packing_assistant, weather, chat
+from app.routers import (
+    health, users, trips, packing_items, checklists,
+    outfit_suggestions, saved_outfits, templates,
+    packing_assistant, weather, chat,
+)
 
 logging.basicConfig(
     level=logging.INFO,

@@ -84,7 +84,7 @@ async def get_packing_items(
 ):
     query = select(PackingItem)
     if user_id:
-        query = query.where(or_(PackingItem.user_id == None, PackingItem.user_id == user_id))
+        query = query.where(or_(PackingItem.user_id.is_(None), PackingItem.user_id == user_id))
     result = await db.execute(query)
     items = result.scalars().all()
     return items

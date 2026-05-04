@@ -3,7 +3,6 @@ Tests for Auth — token creation, verification, expired tokens
 """
 
 import pytest
-import time
 from datetime import timedelta
 from app.auth import create_access_token, decode_access_token
 
@@ -72,14 +71,14 @@ async def test_repeated_login(client):
     # 1. Signup
     signup_resp = await client.post("/api/v1/users/", json=creds)
     assert signup_resp.status_code == 201
-    signup_token = signup_resp.json()["access_token"]
+    _ = signup_resp.json()["access_token"]
 
     # 2. First login (after signup)
     login1 = await client.post("/api/v1/users/login", json={
         "email": creds["email"], "password": creds["password"]
     })
     assert login1.status_code == 200
-    token1 = login1.json()["access_token"]
+    _ = login1.json()["access_token"]
 
     # 3. Second login (simulate logout then login again)
     login2 = await client.post("/api/v1/users/login", json={

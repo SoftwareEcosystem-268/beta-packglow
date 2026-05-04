@@ -4,7 +4,6 @@ Unit tests for AI packing service (ai_packing.py) — mocked OpenRouter calls
 
 import json
 import os
-import pytest
 from unittest.mock import patch, MagicMock
 
 from app.schemas.packing_assistant import PackingAssistantRequest
@@ -124,7 +123,6 @@ def test_ai_success_pro_tier():
     mock_client.chat.completions.create.return_value = _mock_response(MOCK_PRO_RESPONSE)
 
     with patch("app.services.ai_packing.OpenAI", return_value=mock_client):
-        from app.services import ai_packing
         result = generate_with_ai(_req(tier="pro"))
         assert result is not None
         assert len(result.packing_list.clothes) > 0

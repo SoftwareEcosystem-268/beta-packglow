@@ -3,7 +3,6 @@ Packing Schemas - Pydantic schemas สำหรับการแพ็ค
 """
 
 from pydantic import BaseModel, ConfigDict
-from datetime import datetime
 from uuid import UUID
 from typing import Optional, List, Literal
 
@@ -54,6 +53,7 @@ class TripChecklistResponse(TripChecklistBase):
     trip_id: UUID
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class BulkChecklistItem(BaseModel):
     id: Optional[UUID] = None

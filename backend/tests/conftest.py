@@ -17,8 +17,8 @@ os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 os.environ["DEBUG"] = "false"
 
-from app.database import Base, get_db
-from app.main import app
+from app.database import Base, get_db  # noqa: E402
+from app.main import app  # noqa: E402
 
 
 # In-memory SQLite for tests

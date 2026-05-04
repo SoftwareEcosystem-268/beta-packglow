@@ -3,9 +3,8 @@ Packing Models - โมเดลข้อมูลการแพ็คของ
 ===========================================
 """
 
-from sqlalchemy import Column, String, Boolean, Integer, DateTime, ForeignKey, Text, Uuid, JSON, Index
+from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, Text, Uuid, JSON, Index
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 import uuid
 
 from app.database import Base

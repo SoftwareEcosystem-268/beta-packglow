@@ -22,11 +22,61 @@ DESTINATION_COORDS = {
 }
 
 FALLBACK = {
-    "beach": {"temp_c": 32, "feels_like_c": 35, "humidity": 75, "rain_chance": 20, "wind_kph": 15, "condition": "Sunny", "condition_th": "แดดออก", "icon": "sun", "clothing_tips": ["ใส่เสื้อผ้าบางเบา สีอ่อน", "เตรียมหมวกและครีมกันแดด", "รองเท้าแตะหรือรองเท้าเปิด"]},
-    "mountain": {"temp_c": 18, "feels_like_c": 15, "humidity": 60, "rain_chance": 40, "wind_kph": 25, "condition": "Partly Cloudy", "condition_th": "เมฆบางส่วน", "icon": "cloud-sun", "clothing_tips": ["เตรียมเสื้อกันหนาว", "รองเท้าเดินป่ากันลื่น", "เสื้อกันฝนติดตัวไปด้วย"]},
-    "city": {"temp_c": 28, "feels_like_c": 30, "humidity": 65, "rain_chance": 30, "wind_kph": 10, "condition": "Clear", "condition_th": "ท้องฟ้าโล่ง", "icon": "sun", "clothing_tips": ["ใส่เสื้อผ้าสบาย ไม่หนาเกินไป", "เตรียมร่มติดตัว", "รองเท้าผ้าให้เดินสบาย"]},
-    "abroad": {"temp_c": 15, "feels_like_c": 12, "humidity": 70, "rain_chance": 45, "wind_kph": 20, "condition": "Cloudy", "condition_th": "เมฆมาก", "icon": "cloud", "clothing_tips": ["เตรียมเสื้อโค้ทหรือแจ็คเก็ต", "เสื้อผ้าเป็นชั้น ๆ ใส่ง่าย", "รองเท้าหนังหรือรองเท้าปิด"]},
-    "ceremony": {"temp_c": 30, "feels_like_c": 33, "humidity": 70, "rain_chance": 25, "wind_kph": 8, "condition": "Sunny", "condition_th": "แดดออก", "icon": "sun", "clothing_tips": ["ใส่ชุดสุภาพสีอ่อนหรือสีพื้น", "เตรียมเสื้อผ้าสำรอง", "รองเท้าสุภาพ"]},
+    "beach": {
+        "temp_c": 32, "feels_like_c": 35, "humidity": 75,
+        "rain_chance": 20, "wind_kph": 15,
+        "condition": "Sunny", "condition_th": "แดดออก",
+        "icon": "sun",
+        "clothing_tips": [
+            "ใส่เสื้อผ้าบางเบา สีอ่อน",
+            "เตรียมหมวกและครีมกันแดด",
+            "รองเท้าแตะหรือรองเท้าเปิด",
+        ],
+    },
+    "mountain": {
+        "temp_c": 18, "feels_like_c": 15, "humidity": 60,
+        "rain_chance": 40, "wind_kph": 25,
+        "condition": "Partly Cloudy", "condition_th": "เมฆบางส่วน",
+        "icon": "cloud-sun",
+        "clothing_tips": [
+            "เตรียมเสื้อกันหนาว",
+            "รองเท้าเดินป่ากันลื่น",
+            "เสื้อกันฝนติดตัวไปด้วย",
+        ],
+    },
+    "city": {
+        "temp_c": 28, "feels_like_c": 30, "humidity": 65,
+        "rain_chance": 30, "wind_kph": 10,
+        "condition": "Clear", "condition_th": "ท้องฟ้าโล่ง",
+        "icon": "sun",
+        "clothing_tips": [
+            "ใส่เสื้อผ้าสบาย ไม่หนาเกินไป",
+            "เตรียมร่มติดตัว",
+            "รองเท้าผ้าให้เดินสบาย",
+        ],
+    },
+    "abroad": {
+        "temp_c": 15, "feels_like_c": 12, "humidity": 70,
+        "rain_chance": 45, "wind_kph": 20,
+        "condition": "Cloudy", "condition_th": "เมฆมาก",
+        "icon": "cloud",
+        "clothing_tips": [
+            "เตรียมเสื้อโค้ทหรือแจ็คเก็ต",
+            "เสื้อผ้าเป็นชั้น ๆ ใส่ง่าย",
+            "รองเท้าหนังหรือรองเท้าปิด",
+        ],
+    },
+    "ceremony": {
+        "temp_c": 30, "feels_like_c": 33, "humidity": 70,
+        "rain_chance": 25, "wind_kph": 8,
+        "condition": "Sunny", "condition_th": "แดดออก",
+        "icon": "sun",
+        "clothing_tips": [
+            "ใส่ชุดสุภาพสีอ่อนหรือสีพื้น",
+            "เตรียมเสื้อผ้าสำรอง",
+            "รองเท้าสุภาพ",
+        ],
+    },
 }
 
 CONDITION_TH = {
@@ -35,6 +85,7 @@ CONDITION_TH = {
     "Thunderstorm": "พายุฝนฟ้าคะนอง", "Snow": "หิมะตก", "Mist": "หมอก",
     "Fog": "หมอกหนา", "Haze": "หมอกควัน", "Overcast": "เมฆมาก",
 }
+
 
 def _tips(temp_c: float, rain_chance: float) -> list[str]:
     tips = []
@@ -94,7 +145,12 @@ async def get_weather(destination_type: str, city: str = ""):
         elif humidity > 80:
             rain_chance = 40
 
-        location_name = data.get("name", city or DESTINATION_COORDS.get(destination_type, DESTINATION_COORDS["city"])["name"])
+        location_name = data.get(
+            "name",
+            city or DESTINATION_COORDS.get(
+                destination_type, DESTINATION_COORDS["city"]
+            )["name"],
+        )
 
         return {
             "destination_type": destination_type,
