@@ -5,7 +5,7 @@ import { useAuth } from "@/components/AuthContext";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { User, Crown, Menu, X } from "lucide-react";
+import { User, Crown, Menu, X, UserCircle } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 interface NavbarProps {
@@ -131,6 +131,10 @@ export default function Navbar({ variant = "dark" }: NavbarProps) {
                     <p className="text-xs text-gray-400 truncate">{user.email}</p>
                   </div>
                 </div>
+                <button onClick={() => { router.push("/profile"); setMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2">
+                  <UserCircle className="w-4 h-4" />
+                  โปรไฟล์
+                </button>
                 <button onClick={() => { logout(); router.push("/"); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">
                   ออกจากบัญชี
                 </button>

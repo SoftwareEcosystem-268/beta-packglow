@@ -20,7 +20,7 @@ const categoryLabels: Record<string, string> = {
 function BookingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { items: packingItems } = usePacking();
+  const { items: packingItems, generateSmartList } = usePacking();
   const { user } = useAuth();
   const { createNewTrip, setCurrentTrip } = useTrips();
   const [confirmed, setConfirmed] = useState(false);
@@ -154,7 +154,7 @@ function BookingContent() {
                           {item.is_packed && <Check className="w-3 h-3 text-white" />}
                         </div>
                         <div className="min-w-0">
-                          <p className={`text-sm font-medium ${item.is_packed ? "text-gray-900" : "text-gray-400 line-through"}`}>
+                          <p className={`text-sm font-medium ${item.is_packed ? "text-gray-400 line-through" : "text-gray-900"}`}>
                             {item.display_name}
                           </p>
                         </div>
@@ -205,7 +205,10 @@ function BookingContent() {
                 end_date: checkOut || null,
                 status: "planned",
               });
-              if (newTrip) setCurrentTrip(newTrip);
+              if (newTrip) {
+                  setCurrentTrip(newTrip);
+                  await generateSmartList();
+                }
             }
             setConfirmed(true);
             setSubmitting(false);

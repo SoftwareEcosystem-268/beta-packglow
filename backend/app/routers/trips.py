@@ -39,7 +39,11 @@ router = APIRouter(prefix="/trips", tags=["Trips"])
 # POST /trips/ - สร้าง trip ใหม่
 # =============================================================================
 @router.post("/", response_model=TripResponse, status_code=201)
-async def create_trip(trip_data: TripCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def create_trip(
+    trip_data: TripCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
     สร้าง trip ใหม่
 

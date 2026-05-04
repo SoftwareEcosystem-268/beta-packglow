@@ -301,7 +301,7 @@ export default function OutfitsPage() {
       {showProPopup && (
         <ProUpgradePopup
           onClose={() => setShowProPopup(false)}
-          onUpgrade={() => { setShowProPopup(false); window.location.href = "/pricing"; }}
+          onUpgrade={() => { setShowProPopup(false); window.location.href = (process.env.NEXT_BASE_PATH || "") + "/pricing"; }}
         />
       )}
     </div>

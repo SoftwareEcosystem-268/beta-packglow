@@ -10,18 +10,33 @@ function clearAuth() {
   localStorage.removeItem("pg_access_token");
   localStorage.removeItem("pg_current_user");
   localStorage.removeItem("pg_user_tier");
-  window.location.href = "/login";
+  localStorage.removeItem("pg_subscription_expires");
+  if (!window.location.pathname.startsWith("/login") && !window.location.pathname.startsWith("/signup")) {
+    window.location.href = (process.env.NEXT_BASE_PATH || "") + "/login";
+  }
 }
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+async function fetchWithRetry(url: string, options?: RequestInit, retries = 2): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fetch(url, options);
+    } catch {
+      if (attempt === retries) throw new Error("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่");
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+  throw new Error("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่");
+}
+
+function authHeaders(): Record<string, string> {
   const token = getToken();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
+}
 
-  const res = await fetch(`${API_URL}${path}`, {
-    headers,
-    ...options,
-  });
+async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetchWithRetry(`${API_URL}${path}`, { headers: authHeaders(), ...options });
 
   if (res.status === 401) {
     clearAuth();
@@ -36,14 +51,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 async function apiFetchRaw(path: string, options?: RequestInit): Promise<Response> {
-  const token = getToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${API_URL}${path}`, {
-    headers,
-    ...options,
-  });
+  const res = await fetchWithRetry(`${API_URL}${path}`, { headers: authHeaders(), ...options });
 
   if (res.status === 401) {
     clearAuth();
@@ -260,3 +268,26 @@ export const generatePackingList = (data: PackingAssistantRequest) =>
     method: "POST",
     body: JSON.stringify(data),
   });
+
+// =============================================================================
+// Weather — real OpenWeatherMap with fallback data
+// =============================================================================
+export type WeatherData = {
+  destination_type: string;
+  location?: string;
+  source?: string;
+  temp_c: number;
+  feels_like_c: number;
+  humidity: number;
+  rain_chance: number;
+  wind_kph: number;
+  condition: string;
+  condition_th: string;
+  icon: string;
+  clothing_tips: string[];
+};
+
+export const getWeather = (destinationType: string, city?: string) => {
+  const params = city ? `?city=${encodeURIComponent(city)}` : "";
+  return apiFetch<WeatherData>(`/weather/${destinationType}${params}`);
+};

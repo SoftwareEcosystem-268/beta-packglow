@@ -1,4 +1,4 @@
-name: CI
+name: CI + CD Pipeline
 
 on:
   push:
@@ -6,19 +6,21 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - 'docker-compose.yml'
       - '.github/workflows/ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - 'docker-compose.yml'
       - '.github/workflows/ci.yml'
 
 permissions:
   contents: read
 
 jobs:
-  # Backend CI (FastAPI)
+  # ── Backend CI ──
   backend:
     name: Backend
     runs-on: ubuntu-latest
@@ -43,25 +45,28 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          # Stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Run tests
+      - name: Security audit
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt --ignore-vuln CVE-2025-71176
+
+      - name: Run tests with coverage
         env:
           PYTHONPATH: ${{ github.workspace }}/backend
-          # Use SQLite for testing (no external DB needed)
+          SECRET_KEY: ci-test-secret-key
           DATABASE_URL: sqlite+aiosqlite:///./test.db
           DEBUG: "false"
         run: |
-          pytest -v --tb=short
+          pip install pytest-cov
+          pytest -v --tb=short --cov=app --cov-fail-under=70
 
       - name: Build verification
-        run: |
-          python -m compileall app
+        run: python -m compileall app
 
-  # Frontend CI (Next.js)
+  # ── Frontend CI ──
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
@@ -85,8 +90,150 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Run tests
+        run: npm run test:ci
+
       - name: Build
         run: npm run build
 
-      - name: Type check
-        run: npx tsc --noEmit
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npx playwright test
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+  # ── Deploy to EC2 via Docker ──
+  deploy:
+    name: Deploy
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          command_timeout: 30m
+          script: |
+            set -e
+
+            # ── Install Docker if not present ──
+            if ! command -v docker &> /dev/null; then
+              echo "Installing Docker..."
+              curl -fsSL https://get.docker.com | sudo sh
+              sudo usermod -aG docker $USER
+              echo "Docker installed. Re-running with new group..."
+              exec sg docker "$0"
+            fi
+
+            # ── Install docker compose plugin if not present ──
+            if ! docker compose version &> /dev/null; then
+              echo "Installing docker compose plugin..."
+              sudo mkdir -p /usr/local/lib/docker/cli-plugins
+              sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+                -o /usr/local/lib/docker/cli-plugins/docker-compose
+              sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+            fi
+
+            # ── Clone or pull project ──
+            PROJECT_DIR="/home/ubuntu/beta"
+            if [ -d "$PROJECT_DIR/.git" ]; then
+              echo "Pulling latest code..."
+              cd "$PROJECT_DIR"
+              git fetch origin main
+              git reset --hard origin/main
+            else
+              echo "Cloning repository..."
+              rm -rf "$PROJECT_DIR"
+              git clone https://github.com/SoftwareEcosystem-268/beta-packglow.git "$PROJECT_DIR"
+              cd "$PROJECT_DIR"
+            fi
+
+            # ── Create backend .env ──
+            echo "Writing backend/.env..."
+            cat > backend/.env << 'ENVEOF'
+            APP_NAME=Pack&Glow API
+            APP_VERSION=1.0.0
+            DEBUG=false
+            API_PREFIX=/api/v1
+            DATABASE_URL=sqlite+aiosqlite:////app/data/packglow.db
+            SECRET_KEY=${{ secrets.SECRET_KEY }}
+            OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}
+            OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+            OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+            OPENROUTER_MODEL=openai/gpt-4.1-nano
+            OPENROUTER_WEB_SEARCH=true
+            FRONTEND_URL=http://labs89.hpc-ignite.org:8080/beta-packglow
+            ENVEOF
+
+            # ── Build and run with Docker Compose ──
+            echo "Building and starting containers..."
+            export API_URL="http://labs89.hpc-ignite.org:8080/beta-packglow/api/v1"
+            export BASE_PATH="/beta-packglow"
+            docker compose up --build -d
+
+            # ── Wait for health checks ──
+            echo "Waiting for services to be healthy..."
+            sleep 15
+            docker compose ps
+
+            # ── Setup Nginx reverse proxy ──
+            # Our own nginx config on port 8080 — completely separate from
+            # friend's /alpha on port 80. No conflict, no migration needed.
+            echo "Configuring Nginx..."
+            sudo tee /etc/nginx/sites-available/beta-packglow > /dev/null << 'NGINX'
+            server {
+                listen 8080;
+                server_name _;
+
+                # Static assets (Next.js)
+                location ^~ /beta-packglow/_next/ {
+                    proxy_pass http://localhost:3002/beta-packglow/_next/;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                }
+
+                # Image/font files
+                location ~* ^/beta-packglow/(.+\.(svg|png|jpg|jpeg|gif|ico|webp|woff2|ttf|eot|otf))$ {
+                    rewrite ^/beta-packglow/(.+)$ /$1 break;
+                    proxy_pass http://localhost:3002;
+                    proxy_set_header Host $host;
+                }
+
+                # API → backend
+                location /beta-packglow/api/ {
+                    proxy_pass http://localhost:8000/api/v1/;
+                    proxy_http_version 1.1;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                }
+
+                # Frontend pages
+                location /beta-packglow {
+                    proxy_pass http://localhost:3002;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                    proxy_cache_bypass $http_upgrade;
+                }
+            }
+            NGINX
+
+            sudo ln -sf /etc/nginx/sites-available/beta-packglow /etc/nginx/sites-enabled/beta-packglow
+            sudo nginx -t && sudo service nginx reload
+
+            echo "Deploy complete!"

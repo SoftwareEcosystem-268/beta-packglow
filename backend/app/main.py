@@ -9,16 +9,32 @@
 - จัดการ lifespan (startup/shutdown) ของ application
 """
 
+import logging
+import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import get_settings
 from app.database import init_db
-from app.routers import health, users, trips, packing_items, checklists, outfit_suggestions, saved_outfits, templates, packing_assistant
+from app.rate_limit import limiter
+from app.routers import (
+    health, users, trips, packing_items, checklists,
+    outfit_suggestions, saved_outfits, templates,
+    packing_assistant, weather, chat,
+)
 
-# โหลดการตั้งค่าจาก config.py
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger("packglow")
+
 settings = get_settings()
 
 
@@ -38,13 +54,32 @@ async def lifespan(app: FastAPI):
 
 # สร้าง FastAPI application instance
 app = FastAPI(
-    title=settings.app_name,        # ชื่อ API ที่แสดงใน docs
-    version=settings.app_version,   # เวอร์ชันของ API
-    docs_url=f"{settings.api_prefix}/docs",      # URL ของ Swagger UI
-    redoc_url=f"{settings.api_prefix}/redoc",    # URL ของ ReDoc
-    openapi_url=f"{settings.api_prefix}/openapi.json",  # URL ของ OpenAPI schema
-    lifespan=lifespan,  # ฟังก์ชันจัดการ startup/shutdown
+    title=settings.app_name,
+    version=settings.app_version,
+    docs_url=f"{settings.api_prefix}/docs",
+    redoc_url=f"{settings.api_prefix}/redoc",
+    openapi_url=f"{settings.api_prefix}/openapi.json",
+    lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration = time.time() - start
+    logger.info(f"{request.method} {request.url.path} - {response.status_code} ({duration:.3f}s)")
+    return response
 
 # =============================================================================
 # CORS Middleware
@@ -57,10 +92,16 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3001",
+        "http://labs89.hpc-ignite.org",
+        "http://labs89.hpc-ignite.org:3000",
+        "http://labs89.hpc-ignite.org:3002",
+        "http://labs89.hpc-ignite.org:8080",
+        "http://labs89.hpc-ignite.org/beta-packglow",
+        "http://labs89.hpc-ignite.org:8080/beta-packglow",
     ],
-    allow_credentials=True,                   # อนุญาตส่ง cookies/credentials
-    allow_methods=["*"],                     # อนุญาตทุก HTTP methods (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"],                     # อนุญาตทุก headers
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # =============================================================================
@@ -75,6 +116,8 @@ app.include_router(outfit_suggestions.router, prefix=settings.api_prefix)  # /ap
 app.include_router(saved_outfits.router, prefix=settings.api_prefix)       # /api/v1/saved-outfits
 app.include_router(templates.router, prefix=settings.api_prefix)            # /api/v1/templates
 app.include_router(packing_assistant.router, prefix=settings.api_prefix)    # /api/v1/packing-assistant
+app.include_router(weather.router, prefix=settings.api_prefix)              # /api/v1/weather
+app.include_router(chat.router, prefix=settings.api_prefix)                  # /api/v1/chat
 
 
 # =============================================================================

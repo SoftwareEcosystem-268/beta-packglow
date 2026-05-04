@@ -39,4 +39,3 @@ def health_check() -> dict[str, str]:
         - ควร return 200 OK เท่านั้น
     """
     return {"status": "ok"}
-

@@ -18,9 +18,6 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 
-from typing import Optional
-
-
 class Settings(BaseSettings):
     """
     คลาสเก็บการตั้งค่าทั้งหมดของ application
@@ -46,8 +43,8 @@ class Settings(BaseSettings):
     # =========================================================================
     # CORS Settings
     # =========================================================================
-    secret_key: str = "dev-secret-change-in-production"
-    access_token_expire_minutes: int = 1440
+    secret_key: str  # REQUIRED — must be set in .env or environment
+    access_token_expire_minutes: int = 60  # 1 hour, not 24h
 
     # =========================================================================
     # CORS Settings
@@ -61,6 +58,14 @@ class Settings(BaseSettings):
     # ตัวอย่าง PostgreSQL: postgresql://user:pass@host:5432/db
     # ตัวอย่าง SQLite: sqlite+aiosqlite:///./packglow.db
     database_url: str = "sqlite+aiosqlite:///./packglow.db"
+
+    # =========================================================================
+    # OpenRouter AI Settings
+    # =========================================================================
+    openrouter_api_key: str = ""
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_model: str = "openai/gpt-4.1-nano"
+    openrouter_web_search: bool = True
 
     # =========================================================================
     # Pydantic Settings Configuration
