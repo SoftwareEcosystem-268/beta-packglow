@@ -156,7 +156,7 @@ jobs:
 
             # ── Create backend .env ──
             echo "Writing backend/.env..."
-            cat > backend/.env << 'ENVEOF'
+            cat > backend/.env << ENVEOF
             APP_NAME=Pack&Glow API
             APP_VERSION=1.0.0
             DEBUG=false
@@ -168,12 +168,12 @@ jobs:
             OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
             OPENROUTER_MODEL=openai/gpt-4.1-nano
             OPENROUTER_WEB_SEARCH=true
-            FRONTEND_URL=http://labs89.hpc-ignite.org:8080/beta-packglow
+            FRONTEND_URL=http://labs89.hpc-ignite.org/beta-packglow
             ENVEOF
 
             # ── Build and run with Docker Compose ──
             echo "Building and starting containers..."
-            export API_URL="http://labs89.hpc-ignite.org:8080/beta-packglow/api/v1"
+            export API_URL="http://labs89.hpc-ignite.org/beta-packglow/api/v1"
             export BASE_PATH="/beta-packglow"
             docker compose up --build -d
 
@@ -182,58 +182,8 @@ jobs:
             sleep 15
             docker compose ps
 
-            # ── Setup Nginx reverse proxy ──
-            # Our own nginx config on port 8080 — completely separate from
-            # friend's /alpha on port 80. No conflict, no migration needed.
-            echo "Configuring Nginx..."
-            sudo tee /etc/nginx/sites-available/beta-packglow > /dev/null << 'NGINX'
-            server {
-                listen 8080;
-                server_name _;
-
-                # Static assets (Next.js)
-                location ^~ /beta-packglow/_next/ {
-                    proxy_pass http://localhost:3002/beta-packglow/_next/;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
-                    proxy_set_header Connection "upgrade";
-                    proxy_set_header Host $host;
-                    proxy_cache_bypass $http_upgrade;
-                }
-
-                # Image/font files
-                location ~* ^/beta-packglow/(.+\.(svg|png|jpg|jpeg|gif|ico|webp|woff2|ttf|eot|otf))$ {
-                    rewrite ^/beta-packglow/(.+)$ /$1 break;
-                    proxy_pass http://localhost:3002;
-                    proxy_set_header Host $host;
-                }
-
-                # API → backend
-                location /beta-packglow/api/ {
-                    proxy_pass http://localhost:8000/api/v1/;
-                    proxy_http_version 1.1;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                }
-
-                # Frontend pages
-                location /beta-packglow {
-                    proxy_pass http://localhost:3002;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
-                    proxy_set_header Connection "upgrade";
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                    proxy_cache_bypass $http_upgrade;
-                }
-            }
-            NGINX
-
-            sudo ln -sf /etc/nginx/sites-available/beta-packglow /etc/nginx/sites-enabled/beta-packglow
+            # ── Reload Nginx (config managed manually) ──
+            echo "Reloading Nginx..."
             sudo nginx -t && sudo service nginx reload
 
             echo "Deploy complete!"
