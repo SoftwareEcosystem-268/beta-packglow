@@ -10,6 +10,7 @@ Database Configuration
 """
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy import text
 from sqlalchemy.orm import DeclarativeBase
 
 from app.config import get_settings
@@ -115,3 +116,16 @@ async def init_db() -> None:
     # สร้าง tables ทั้งหมด
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+        # เพิ่ม columns ใหม่สำหรับ subscription (ถ้ายังไม่มีใน existing tables)
+        if db_url.startswith("sqlite"):
+            result = await conn.execute(text("PRAGMA table_info(users)"))
+            columns = {row[1] for row in result}
+            if "subscription_plan" not in columns:
+                await conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN subscription_plan VARCHAR(10)"
+                ))
+            if "subscription_expires_at" not in columns:
+                await conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN subscription_expires_at DATETIME"
+                ))

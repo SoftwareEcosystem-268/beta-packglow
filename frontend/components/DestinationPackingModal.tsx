@@ -1,19 +1,20 @@
 "use client";
 
-import { X, MapPin, Clock, Loader2, Check, ChevronDown, ChevronUp, Sun, Cloud, Wind } from "lucide-react";
-import { useState } from "react";
-import { generatePackingList, type PackingAssistantResponse } from "@/lib/api";
+import { X, MapPin, Clock, Loader2, Check, ChevronDown, ChevronUp, Wind, Droplets, Thermometer, Umbrella } from "lucide-react";
+import { useState, useEffect } from "react";
+import { generatePackingList, getWeather, type PackingAssistantResponse, type WeatherData } from "@/lib/api";
 
 export interface DestinationData {
-  id: number;
+  id: number | string;
   name: string;
   location: string;
   image: string;
   category: string;
-  destinationType: "beach" | "mountain" | "city" | "abroad" | "ceremony";
+  destinationType: "beach" | "mountain" | "city" | "abroad" | "ceremony" | "";
   suggestedActivities: string[];
   climate: string;
   description: string;
+  isCustom?: boolean;
 }
 
 interface DestinationPackingModalProps {
@@ -46,13 +47,15 @@ const CATEGORY_LABELS: Record<string, { label: string; icon: string }> = {
   others: { label: "อื่น ๆ", icon: "🎒" },
 };
 
-const CLIMATE_ICONS: Record<string, typeof Sun> = {
-  hot: Sun,
-  tropical: Sun,
-  mediterranean: Sun,
-  continental: Cloud,
-  temperate: Wind,
-};
+const DEST_TYPE_OPTIONS = [
+  { value: "beach", label: "ชายหาด" },
+  { value: "mountain", label: "ภูเขา" },
+  { value: "city", label: "เมือง" },
+  { value: "abroad", label: "ต่างประเทศ" },
+  { value: "ceremony", label: "พิธีการ" },
+] as const;
+
+const ALL_ACTIVITIES = Object.keys(ACTIVITY_LABELS);
 
 export default function DestinationPackingModal({ destination, onClose }: DestinationPackingModalProps) {
   const [duration, setDuration] = useState(3);
@@ -61,6 +64,32 @@ export default function DestinationPackingModal({ destination, onClose }: Destin
   const [result, setResult] = useState<PackingAssistantResponse | null>(null);
   const [error, setError] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [customCity, setCustomCity] = useState("");
+  const [customDestType, setCustomDestType] = useState<"beach" | "mountain" | "city" | "abroad" | "ceremony">(
+    (destination.destinationType as "beach" | "mountain" | "city" | "abroad" | "ceremony") || "city"
+  );
+
+  const isCustom = destination.isCustom || !destination.destinationType;
+  const activeDestType: "beach" | "mountain" | "city" | "abroad" | "ceremony" = isCustom ? customDestType : (destination.destinationType as "beach" | "mountain" | "city" | "abroad" | "ceremony");
+  const availableActivities = isCustom ? ALL_ACTIVITIES : destination.suggestedActivities;
+
+  const fetchWeather = (city: string) => {
+    setWeatherLoading(true);
+    getWeather(activeDestType, city || destination.location)
+      .then(setWeather)
+      .catch(() => setWeather(null))
+      .finally(() => setWeatherLoading(false));
+  };
+
+  useEffect(() => {
+    setWeatherLoading(true);
+    getWeather(activeDestType, destination.location)
+      .then(setWeather)
+      .catch(() => setWeather(null))
+      .finally(() => setWeatherLoading(false));
+  }, [activeDestType, destination.location]);
 
   const toggleActivity = (activity: string) => {
     setSelectedActivities((prev) =>
@@ -73,7 +102,7 @@ export default function DestinationPackingModal({ destination, onClose }: Destin
     setError("");
     try {
       const res = await generatePackingList({
-        destination_type: destination.destinationType,
+        destination_type: activeDestType,
         duration_days: duration,
         activities: selectedActivities,
         user_tier: "free",
@@ -128,14 +157,47 @@ export default function DestinationPackingModal({ destination, onClose }: Destin
                 <MapPin className="w-3.5 h-3.5" />
                 {destination.location}
               </div>
-              <div className="flex items-center gap-1">
-                {(() => {
-                  const Icon = CLIMATE_ICONS[destination.climate.toLowerCase()] || Sun;
-                  return <Icon className="w-3.5 h-3.5" />;
-                })()}
-                {destination.climate}
-              </div>
             </div>
+
+            {/* Destination type selector for custom destinations */}
+            {isCustom && !result && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {DEST_TYPE_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setCustomDestType(opt.value)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      customDestType === opt.value
+                        ? "bg-white text-gray-900"
+                        : "bg-white/20 text-white/80 hover:bg-white/30"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Weather Widget */}
+            {weather && !weatherLoading && (
+              <div className="mt-2 bg-white/10 backdrop-blur-sm rounded-lg p-2.5 flex items-center gap-4 text-xs text-white/90">
+                <div className="flex items-center gap-1">
+                  <Thermometer className="w-3.5 h-3.5" />
+                  <span>{weather.temp_c}°C (รู้สึก {weather.feels_like_c}°C)</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Droplets className="w-3.5 h-3.5" />
+                  <span>ความชื้น {weather.humidity}%</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Umbrella className="w-3.5 h-3.5" />
+                  <span>โอกาสฝน {weather.rain_chance}%</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Wind className="w-3.5 h-3.5" />
+                  <span>{weather.condition_th}</span>
+                </div>
+              </div>
+            )}
             <p className="text-white/70 text-sm mt-1">{destination.description}</p>
           </div>
         </div>
@@ -145,6 +207,48 @@ export default function DestinationPackingModal({ destination, onClose }: Destin
           {!result ? (
             /* === FORM STATE === */
             <div className="p-5 space-y-5">
+              {/* City search for weather */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <MapPin className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                  เมืองที่ต้องการดูสภาพอากาศ
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={customCity}
+                    onChange={(e) => setCustomCity(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && customCity.trim()) fetchWeather(customCity.trim()); }}
+                    placeholder={destination.location}
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+                  />
+                  <button
+                    onClick={() => fetchWeather(customCity.trim() || destination.location)}
+                    disabled={weatherLoading}
+                    className="px-4 py-2.5 rounded-xl bg-brand text-white text-sm font-medium hover:bg-brand-dark transition-colors disabled:opacity-50"
+                  >
+                    {weatherLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ค้นหา"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Weather clothing tips */}
+              {weather && weather.clothing_tips.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200/50 rounded-xl p-3.5">
+                  <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-1.5">
+                    <Thermometer className="w-4 h-4" />
+                    คำแนะนำจากสภาพอากาศ ({weather.condition_th}, {weather.temp_c}°C)
+                  </h4>
+                  <ul className="space-y-1">
+                    {weather.clothing_tips.map((tip, i) => (
+                      <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
+                        <span className="text-amber-500 mt-0.5">&#8226;</span>
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {/* Duration */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -175,7 +279,7 @@ export default function DestinationPackingModal({ destination, onClose }: Destin
                   กิจกรรมที่สนใจ
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {destination.suggestedActivities.map((activity) => {
+                  {availableActivities.map((activity) => {
                     const isSelected = selectedActivities.includes(activity);
                     return (
                       <button

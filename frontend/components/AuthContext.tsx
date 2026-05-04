@@ -8,6 +8,9 @@ export type User = {
   id: string;
   name: string;
   email: string;
+  tier?: string;
+  subscription_plan?: string | null;
+  subscription_expires_at?: string | null;
 };
 
 type AuthContextType = {
@@ -79,7 +82,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       localStorage.setItem("pg_access_token", data.access_token);
       localStorage.setItem("pg_current_user", JSON.stringify(data.user));
-      localStorage.setItem("pg_user_tier", "free");
+      localStorage.setItem("pg_user_tier", data.user.tier || "free");
+      if (data.user.subscription_expires_at) {
+        localStorage.setItem("pg_subscription_expires", data.user.subscription_expires_at);
+      }
       emitUserChange();
       return null;
     } catch {
@@ -101,7 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       localStorage.setItem("pg_access_token", data.access_token);
       localStorage.setItem("pg_current_user", JSON.stringify(data.user));
-      localStorage.setItem("pg_user_tier", "free");
+      localStorage.setItem("pg_user_tier", data.user.tier || "free");
+      if (data.user.subscription_expires_at) {
+        localStorage.setItem("pg_subscription_expires", data.user.subscription_expires_at);
+      }
       emitUserChange();
       return null;
     } catch {
@@ -113,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("pg_access_token");
     localStorage.removeItem("pg_current_user");
     localStorage.removeItem("pg_user_tier");
+    localStorage.removeItem("pg_subscription_expires");
     emitUserChange();
   }, []);
 

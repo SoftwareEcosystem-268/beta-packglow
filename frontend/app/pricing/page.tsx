@@ -50,7 +50,7 @@ export default function PricingPage() {
               <button onClick={() => setShowLoginAlert(false)} className="flex-1 py-3 rounded-xl border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition-colors">
                 ยกเลิก
               </button>
-              <a href="/login" className="flex-1 py-3 rounded-xl bg-[#C97D4E] text-white font-semibold hover:bg-[#A66B3F] transition-colors text-center">
+              <a href={(process.env.NEXT_BASE_PATH || "") + "/login"} className="flex-1 py-3 rounded-xl bg-[#C97D4E] text-white font-semibold hover:bg-[#A66B3F] transition-colors text-center">
                 เข้าสู่ระบบ
               </a>
             </div>

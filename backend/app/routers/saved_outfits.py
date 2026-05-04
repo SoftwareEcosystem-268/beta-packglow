@@ -46,20 +46,9 @@ async def save_outfit(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    บันทึก outfit
-
-    Query params:
-        user_id: UUID ของ user
-
-    Request body:
-        {
-            "outfit_id": "uuid"
-        }
-
-    Errors:
-        404: User not found / Outfit suggestion not found
-    """
+    if current_user.tier != "pro":
+        raise HTTPException(status_code=403, detail="Saving outfits is a Pro feature")
+    # ตรวจสอบว่า user มีอยู่จริง
     # ตรวจสอบว่า user มีอยู่จริง
     result = await db.execute(select(User).where(User.id == user_id))
     if not result.scalar_one_or_none():

@@ -38,6 +38,9 @@ class User(Base):
     name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
+    tier = Column(String(10), nullable=False, default="free")
+    subscription_plan = Column(String(10), nullable=True, default=None)
+    subscription_expires_at = Column(DateTime(timezone=True), nullable=True, default=None)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # =========================================================================
