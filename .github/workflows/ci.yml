@@ -155,6 +155,8 @@ jobs:
             ENVEOF
 
             # ── Build and run with Docker Compose ──
+            echo "Stopping old containers..."
+            docker compose down --remove-orphans || true
             echo "Building and starting containers..."
             export API_URL="http://labs89.hpc-ignite.org/beta-packglow/api/v1"
             export BASE_PATH="/beta-packglow"
