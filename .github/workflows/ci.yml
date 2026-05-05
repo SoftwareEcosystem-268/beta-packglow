@@ -156,6 +156,7 @@ jobs:
 
             # ── Build and run with Docker Compose ──
             echo "Stopping old containers..."
+            docker compose -p beta-packglow down --remove-orphans || true
             docker compose down --remove-orphans || true
             echo "Building and starting containers..."
             export API_URL="http://labs89.hpc-ignite.org/beta-packglow/api/v1"
