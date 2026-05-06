@@ -155,18 +155,22 @@ jobs:
             ENVEOF
 
             # ── Build and run with Docker Compose ──
+            PROJECT_NAME="beta-packglow"
             echo "Stopping old containers..."
-            docker compose -p beta-packglow down --remove-orphans || true
-            docker compose down --remove-orphans || true
+            docker compose -p "$PROJECT_NAME" down --remove-orphans || true
             echo "Building and starting containers..."
             export API_URL="http://labs89.hpc-ignite.org/beta-packglow/api/v1"
             export BASE_PATH="/beta-packglow"
-            docker compose up --build -d
+            docker compose -p "$PROJECT_NAME" up --build -d
 
             # ── Wait for health checks ──
             echo "Waiting for services to be healthy..."
             sleep 15
-            docker compose ps
+            docker compose -p "$PROJECT_NAME" ps
+
+            # ── Seed outfit suggestions if empty ──
+            echo "Seeding outfit suggestions..."
+            docker compose -p "$PROJECT_NAME" exec -T backend python seed_outfits.py
 
             # ── Reload Nginx (config managed manually) ──
             echo "Reloading Nginx..."

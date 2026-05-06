@@ -5,12 +5,19 @@ import uuid
 import json
 from datetime import datetime
 
-conn = sqlite3.connect('packglow.db', timeout=30)
+DB_PATH = '/app/data/packglow.db' if __import__('os').path.exists('/app/data') else 'packglow.db'
+conn = sqlite3.connect(DB_PATH, timeout=30)
 conn.execute("PRAGMA journal_mode=WAL")
 cursor = conn.cursor()
 
-# Clear existing data
-cursor.execute("DELETE FROM outfit_suggestions")
+# Skip if data already exists
+count = cursor.execute("SELECT COUNT(*) FROM outfit_suggestions").fetchone()[0]
+if count > 0:
+    print(f"Outfit suggestions already seeded ({count} rows), skipping.")
+    conn.close()
+    exit(0)
+
+print("Seeding outfit suggestions...")
 
 outfits = [
     # ===== Beach - Day (female) =====
