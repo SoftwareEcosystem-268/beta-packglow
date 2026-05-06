@@ -72,7 +72,7 @@ export default function ProUpgradePopup({ onClose, onUpgrade }: Props) {
             <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition-colors">
               ยกเลิก
             </button>
-            <a href={(process.env.NEXT_BASE_PATH || "") + "/login"} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-brand to-[#D4956A] text-white font-semibold hover:shadow-lg transition-all text-center">
+            <a href={(process.env.NEXT_PUBLIC_BASE_PATH || "") + "/login"} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-brand to-[#D4956A] text-white font-semibold hover:shadow-lg transition-all text-center">
               เข้าสู่ระบบ
             </a>
           </div>

@@ -22,7 +22,7 @@ export default function LoginAlertModal({ open, onClose }: LoginAlertModalProps)
           <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition-colors">
             ยกเลิก
           </button>
-          <a href={(process.env.NEXT_BASE_PATH || "") + "/login"} className="flex-1 py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark transition-colors text-center">
+          <a href={(process.env.NEXT_PUBLIC_BASE_PATH || "") + "/login"} className="flex-1 py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark transition-colors text-center">
             เข้าสู่ระบบ
           </a>
         </div>

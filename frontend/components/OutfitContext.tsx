@@ -48,7 +48,7 @@ export function OutfitProvider({ children }: { children: ReactNode }) {
   const toggleSave = useCallback(
     async (outfitId: string) => {
       if (!user) {
-        window.location.href = (process.env.NEXT_BASE_PATH || "") + "/login";
+        window.location.href = (process.env.NEXT_PUBLIC_BASE_PATH || "") + "/login";
         return;
       }
       const existing = savedOutfits.find((s) => s.outfit_id === outfitId);
