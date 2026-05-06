@@ -1,6 +1,7 @@
 "use client";
 
 import { X, MapPin, Clock, Loader2, Check, ChevronDown, ChevronUp, Wind, Droplets, Thermometer, Umbrella } from "lucide-react";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { generatePackingList, getWeather, type PackingAssistantResponse, type WeatherData } from "@/lib/api";
 
@@ -135,9 +136,12 @@ export default function DestinationPackingModal({ destination, onClose }: Destin
       >
         {/* Header with destination image */}
         <div className="relative h-48 flex-shrink-0">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url('${destination.image}')`, backgroundColor: "#e5e5e5" }}
+          <Image
+            src={destination.image}
+            alt={destination.name}
+            fill
+            className="object-cover"
+            unoptimized
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 

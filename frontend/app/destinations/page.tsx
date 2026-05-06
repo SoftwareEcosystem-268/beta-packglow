@@ -3,6 +3,7 @@
 import Navbar from "@/components/Navbar";
 import DestinationPackingModal, { type DestinationData } from "@/components/DestinationPackingModal";
 import { MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
 import { useState, useRef } from "react";
 
 const categories = [
@@ -216,13 +217,12 @@ export default function DestinationsPage() {
                 onClick={() => handleCardClick(destination)}
               >
                 <div className="relative h-80 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
-                  {/* Background Image */}
-                  <div
-                    className="absolute inset-0 bg-cover bg-center"
-                    style={{
-                      backgroundImage: `url('${destination.image}')`,
-                      backgroundColor: "#e5e5e5",
-                    }}
+                  <Image
+                    src={destination.image}
+                    alt={destination.name}
+                    fill
+                    className="object-cover"
+                    unoptimized
                   />
 
                   {/* Gradient Overlay */}

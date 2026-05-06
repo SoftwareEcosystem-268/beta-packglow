@@ -35,10 +35,12 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen relative flex items-center justify-center">
       {/* Full-page Background Image */}
-      <img
+      <Image
         src="/asset/signup-bg.jpg"
         alt="Travel scenic"
-        className="object-cover absolute inset-0 w-full h-full"
+        fill
+        className="object-cover"
+        unoptimized
       />
       <div className="absolute inset-0 bg-black/50" />
 

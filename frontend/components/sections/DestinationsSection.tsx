@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { MapPin, Sparkles } from "lucide-react";
 import { destCategories, destinations } from "@/lib/data/destinations";
 import DestinationPackingModal, { type DestinationData } from "@/components/DestinationPackingModal";
@@ -68,7 +69,7 @@ export default function DestinationsSection() {
             [...filteredDest, ...filteredDest].map((d, i) => (
               <div key={`${d.id}-${i}`} className="flex-shrink-0 w-56 md:w-72 group cursor-pointer" onClick={() => { setSelectedDestination(d); setShowPackingModal(true); }}>
                 <div className="relative h-64 md:h-80 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
-                  <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${d.image}')`, backgroundColor: "#e5e5e5" }} />
+                  <Image src={d.image} alt={d.name} fill className="object-cover" unoptimized />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-5">
                     <h3 className="text-xl font-bold text-white mb-1">{d.name}</h3>

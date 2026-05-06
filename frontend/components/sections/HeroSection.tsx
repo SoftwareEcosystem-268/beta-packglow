@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { ArrowRight, Calendar } from "lucide-react";
 
 function formatDate(dateStr: string) {
@@ -24,7 +25,7 @@ export default function HeroSection() {
 
   return (
     <section id="hero" className="relative min-h-screen flex flex-col justify-center">
-      <div className="absolute inset-0 bg-center bg-no-repeat" style={{ backgroundImage: `url('/asset/first-page.png')`, backgroundSize: 'cover' }} />
+      <Image src="/asset/first-page.png" alt="" fill className="object-cover" unoptimized />
       <div className="absolute inset-0 bg-black/50" />
       <div className="relative z-10 px-4 md:px-8 lg:px-24 pt-24 md:pt-28">
         <h1 className="text-3xl md:text-5xl lg:text-7xl font-light tracking-tight text-white mb-4 md:mb-6 leading-tight">
