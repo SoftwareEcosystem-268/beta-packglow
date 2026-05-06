@@ -11,8 +11,9 @@ function clearAuth() {
   localStorage.removeItem("pg_current_user");
   localStorage.removeItem("pg_user_tier");
   localStorage.removeItem("pg_subscription_expires");
-  if (!window.location.pathname.startsWith("/login") && !window.location.pathname.startsWith("/signup")) {
-    window.location.href = (process.env.NEXT_PUBLIC_BASE_PATH || "") + "/login";
+  const bp = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  if (!window.location.pathname.endsWith("/login") && !window.location.pathname.endsWith("/signup")) {
+    window.location.href = bp + "/login";
   }
 }
 
