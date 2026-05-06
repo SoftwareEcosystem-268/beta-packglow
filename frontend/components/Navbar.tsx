@@ -80,11 +80,9 @@ export default function Navbar({ variant = "dark" }: NavbarProps) {
     <header className={`flex items-center justify-between px-4 md:px-8 lg:px-24 py-4 md:py-6 ${isDark ? "" : "bg-white shadow-sm"}`}>
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-        <Image
-          src="/asset/logo-web.svg"
+        <img
+          src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/asset/logo-web.svg`}
           alt="PackGlow"
-          width={32}
-          height={32}
           className={`w-7 h-7 md:w-8 md:h-8 ${!isDark ? "brightness-0" : ""}`}
         />
         <span className={`text-xl md:text-2xl font-bold ${logoColor}`}>PackGlow</span>

@@ -36,7 +36,7 @@ export default function FooterSection({ scrollTo }: FooterSectionProps) {
             {/* Logo & Copyright */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <Image src="/asset/logo-web.svg" alt="PackGlow" width={28} height={28} className="w-7 h-7 brightness-0 invert" />
+                <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/asset/logo-web.svg`} alt="PackGlow" className="w-7 h-7 brightness-0 invert" />
                 <span className="text-xl font-bold text-white">PackGlow</span>
               </div>
               <p className="text-white/50 text-sm leading-relaxed">

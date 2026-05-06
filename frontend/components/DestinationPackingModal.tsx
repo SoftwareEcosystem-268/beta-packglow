@@ -136,12 +136,10 @@ export default function DestinationPackingModal({ destination, onClose }: Destin
       >
         {/* Header with destination image */}
         <div className="relative h-48 flex-shrink-0">
-          <Image
-            src={destination.image}
+          <img
+            src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}${destination.image}`}
             alt={destination.name}
-            fill
-            className="object-cover"
-            unoptimized
+            className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 

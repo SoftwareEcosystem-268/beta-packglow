@@ -35,18 +35,16 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen relative flex items-center justify-center">
       {/* Full-page Background Image */}
-      <Image
-        src="/asset/signup-bg.jpg"
+      <img
+        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/asset/signup-bg.jpg`}
         alt="Travel scenic"
-        fill
-        className="object-cover"
-        unoptimized
+        className="absolute inset-0 w-full h-full object-cover"
       />
       <div className="absolute inset-0 bg-black/50" />
 
       {/* Logo top-left */}
       <Link href="/" className="absolute top-6 left-8 z-20 flex items-center gap-2">
-        <Image src="/asset/logo-web.svg" alt="PackGlow" className="w-8 h-8" width={32} height={32} />
+        <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/asset/logo-web.svg`} alt="PackGlow" className="w-8 h-8" />
         <span className="text-2xl font-bold text-white">PackGlow</span>
       </Link>
 

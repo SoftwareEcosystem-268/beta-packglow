@@ -217,12 +217,10 @@ export default function DestinationsPage() {
                 onClick={() => handleCardClick(destination)}
               >
                 <div className="relative h-80 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]">
-                  <Image
-                    src={destination.image}
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}${destination.image}`}
                     alt={destination.name}
-                    fill
-                    className="object-cover"
-                    unoptimized
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
 
                   {/* Gradient Overlay */}

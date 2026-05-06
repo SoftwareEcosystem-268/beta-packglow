@@ -37,7 +37,7 @@ export default function HomeNavbar({ isPro, scrollTo }: HomeNavbarProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-8 lg:px-24 py-3 md:py-5 bg-white/80 backdrop-blur-md shadow-sm">
       <button onClick={() => scrollTo("hero")} className="flex items-center gap-2">
-        <Image src="/asset/logo-web.svg" alt="PackGlow" width={32} height={32} className="w-7 h-7 md:w-8 md:h-8 brightness-0" />
+        <img src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/asset/logo-web.svg`} alt="PackGlow" className="w-7 h-7 md:w-8 md:h-8 brightness-0" />
         <span className="text-lg md:text-2xl font-bold text-gray-900">PackGlow</span>
       </button>
       <nav className="hidden lg:flex items-center gap-6">
